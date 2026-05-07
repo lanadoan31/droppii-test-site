@@ -5,6 +5,7 @@ import Sidebar from './Sidebar.jsx';
 import Topbar from './Topbar.jsx';
 import TestList from './TestList.jsx';
 import CreateTestModal from './CreateTestModal.jsx';
+import Builder from './Builder.jsx';
 
 function pathToSection(pathname) {
   const seg = pathname.replace(/^\/admin-v2\/?/, '').split('/')[0];
@@ -102,7 +103,15 @@ export default function AdminAppV2() {
           />
         );
       case 'builder':
-        return <ComingSoon label="Test builder" />;
+        return (
+          <Builder
+            tests={tests}
+            setTests={setTests}
+            testId={contextId}
+            navigate={navigate}
+            showToast={showToast}
+          />
+        );
       case 'testDetail':
         return <ComingSoon label="Test detail" />;
       default:
