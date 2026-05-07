@@ -105,6 +105,11 @@ export function getTestsForUser(userId) {
   });
 }
 
+// All tests in the store regardless of availability — for admin analytics.
+export function getAllStoredTests() {
+  return Object.values(getAllRaw());
+}
+
 export function getTestById(testId) {
   return getAllRaw()[testId] || null;
 }

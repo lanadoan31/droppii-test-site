@@ -7,6 +7,7 @@ import TestList from './TestList.jsx';
 import CreateTestModal from './CreateTestModal.jsx';
 import Builder from './Builder.jsx';
 import Results from './Results.jsx';
+import Dashboard from './Dashboard.jsx';
 
 function pathToSection(pathname) {
   const seg = pathname.replace(/^\/admin-v2\/?/, '').split('/')[0];
@@ -118,6 +119,8 @@ export default function AdminAppV2() {
         return <ComingSoon label="Test detail" />;
       case 'results':
         return <Results />;
+      case 'dashboard':
+        return <Dashboard />;
       default:
         return <ComingSoon label={pageTitle} />;
     }
