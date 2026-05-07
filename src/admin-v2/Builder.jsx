@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
 import { CATEGORIES, INITIAL_QUESTION_BANK } from './data-v2.js';
 import { getDraft, saveDraft } from './builderDraft.js';
-import { normalizeQuestion, validateQuestion, validateForPublish } from './testExport.js';
+import { normalizeQuestion, validateQuestion, validateForPublish, exportTest } from './testExport.js';
+import { publishTest } from '../data/testStore.js';
 
 const TYPE_LABELS = {
   'multiple-choice': 'Multiple choice',
@@ -740,6 +741,10 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
     if (newStatus) patch.status = newStatus;
 
     setTests((prev) => prev.map((t) => (t.id === testId ? { ...t, ...patch } : t)));
+
+    if (newStatus === 'published') {
+      publishTest(exportTest({ ...test, ...patch }));
+    }
 
     const toastMsg = newStatus === 'published' ? 'Test published'
       : newStatus === 'draft' ? 'Test unpublished'

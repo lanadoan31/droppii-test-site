@@ -1,7 +1,6 @@
 import { DroppiiLogo, IconChat, BrandPattern } from "./Brand";
-import { TEST_META } from "../data/questions";
 
-export default function PreTest({ tweaks, seller, onStart }) {
+export default function PreTest({ tweaks, seller, testMeta, onStart }) {
   const primary = tweaks.primaryColor;
   const secondary = tweaks.secondaryColor;
 
@@ -31,21 +30,21 @@ export default function PreTest({ tweaks, seller, onStart }) {
               <IconChat size={14} color={primary} />
               <span>Chứng chỉ AI cho Nhà bán hàng · 2026</span>
             </div>
-            <h1 className="hero-title">{TEST_META.title}</h1>
-            <p className="hero-sub">{TEST_META.subtitle}</p>
+            <h1 className="hero-title">{testMeta.title}</h1>
+            <p className="hero-sub">{testMeta.subtitle}</p>
 
             <div className="hero-stats">
               <div className="stat">
                 <div className="stat-label">Số câu hỏi</div>
-                <div className="stat-value">{TEST_META.totalQuestions}</div>
+                <div className="stat-value">{testMeta.totalQuestions}</div>
               </div>
               <div className="stat">
                 <div className="stat-label">Thời gian</div>
-                <div className="stat-value">{TEST_META.durationMinutes} phút</div>
+                <div className="stat-value">{testMeta.durationMinutes} phút</div>
               </div>
               <div className="stat">
                 <div className="stat-label">Đạt</div>
-                <div className="stat-value">≥ {TEST_META.passingScore}%</div>
+                <div className="stat-value">≥ {testMeta.passingScore}%</div>
               </div>
               <div className="stat">
                 <div className="stat-label">Lần thử</div>
@@ -56,7 +55,7 @@ export default function PreTest({ tweaks, seller, onStart }) {
             <div className="topics">
               <div className="topics-label">Nội dung kiểm tra</div>
               <div className="topic-pills">
-                {TEST_META.topics.map((t, i) => (
+                {testMeta.topics.map((t, i) => (
                   <span
                     key={t.id}
                     className="topic-pill"

@@ -4,7 +4,8 @@ import PreTest from "./components/PreTest";
 import Test from "./components/Test";
 import Result from "./components/Result";
 import Certificate from "./components/Certificate";
-import { TEST_META } from "./data/questions";
+import { TEST_META, QUESTIONS } from "./data/questions";
+import { getLatestPublishedTest, adaptForSeller } from "./data/testStore";
 
 const BRANCH_PRESETS = {
   marketplace: { primaryColor: "#F26B1F", secondaryColor: "#1E73BE", bgColor: "#FAF7F2" },
@@ -22,12 +23,17 @@ const DEFAULT_TWEAKS = {
 };
 
 export default function App() {
+  const [{ questions, testMeta }] = useState(() => {
+    const pub = getLatestPublishedTest();
+    return pub ? adaptForSeller(pub) : { questions: QUESTIONS, testMeta: TEST_META };
+  });
+
   const [tweaks, setTweaksState] = useState(DEFAULT_TWEAKS);
   const [stage, setStage] = useState("entry"); // entry | pretest | test | result | cert
   const [seller, setSeller] = useState(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(TEST_META.durationMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(testMeta.durationMinutes * 60);
 
   const setTweak = (keyOrEdits, val) => {
     setTweaksState((prev) => {
@@ -59,7 +65,7 @@ export default function App() {
   const handleStart = () => {
     setAnswers({});
     setCurrentIdx(0);
-    setTimeLeft(TEST_META.durationMinutes * 60);
+    setTimeLeft(testMeta.durationMinutes * 60);
     setStage("test");
   };
 
@@ -85,12 +91,14 @@ export default function App() {
         <SellerEntry tweaks={tweaks} onContinue={handleSellerContinue} />
       )}
       {stage === "pretest" && (
-        <PreTest tweaks={tweaks} seller={demoSeller} onStart={handleStart} />
+        <PreTest tweaks={tweaks} seller={demoSeller} testMeta={testMeta} onStart={handleStart} />
       )}
       {stage === "test" && (
         <Test
           tweaks={tweaks}
           seller={demoSeller}
+          questions={questions}
+          testMeta={testMeta}
           answers={answers}
           onAnswer={handleAnswer}
           currentIdx={currentIdx}
@@ -103,6 +111,8 @@ export default function App() {
       {stage === "result" && (
         <Result
           tweaks={tweaks}
+          questions={questions}
+          testMeta={testMeta}
           answers={answers}
           onReview={handleReview}
           onCertificate={() => setStage("cert")}
@@ -113,6 +123,7 @@ export default function App() {
         <Certificate
           tweaks={tweaks}
           seller={demoSeller}
+          questions={questions}
           answers={answers}
           onBack={() => setStage("result")}
         />

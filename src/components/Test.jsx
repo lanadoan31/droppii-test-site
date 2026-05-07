@@ -1,5 +1,4 @@
 import { DroppiiLogo, IconChat } from "./Brand";
-import { QUESTIONS, TEST_META } from "../data/questions";
 
 function isAnswered(q, a) {
   if (!a) return false;
@@ -9,9 +8,9 @@ function isAnswered(q, a) {
   return false;
 }
 
-export default function Test({ tweaks, seller, answers, onAnswer, currentIdx, onNav, timeLeft, onSubmit, onAbort }) {
-  const q = QUESTIONS[currentIdx];
-  const total = QUESTIONS.length;
+export default function Test({ tweaks, seller, questions, testMeta, answers, onAnswer, currentIdx, onNav, timeLeft, onSubmit, onAbort }) {
+  const q = questions[currentIdx];
+  const total = questions.length;
   const primary = tweaks.primaryColor;
   const secondary = tweaks.secondaryColor;
 
@@ -27,7 +26,7 @@ export default function Test({ tweaks, seller, answers, onAnswer, currentIdx, on
         <div className="test-topbar-left">
           <DroppiiLogo color={primary} height={22} />
           <span className="test-topbar-divider" />
-          <span className="test-topbar-meta">{TEST_META.title}</span>
+          <span className="test-topbar-meta">{testMeta.title}</span>
         </div>
         <div className="test-topbar-right">
           <div className={`timer ${timeWarning ? "timer-warning" : ""}`}>
@@ -53,7 +52,7 @@ export default function Test({ tweaks, seller, answers, onAnswer, currentIdx, on
           </span>
         </div>
         <div className="progress-dots">
-          {QUESTIONS.map((qq, i) => {
+          {questions.map((qq, i) => {
             const ans = isAnswered(qq, answers[qq.id]);
             const isCurrent = i === currentIdx;
             return (

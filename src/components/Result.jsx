@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DroppiiLogo } from "./Brand";
-import { QUESTIONS, TEST_META } from "../data/questions";
 
 function ScoreRing({ pct, primary, secondary }) {
   const r = 64;
@@ -80,11 +79,11 @@ function ReviewItem({ g, idx, primary }) {
   );
 }
 
-export default function Result({ tweaks, answers, onReview, onCertificate, onRetry }) {
+export default function Result({ tweaks, questions, testMeta, answers, onReview, onCertificate, onRetry }) {
   const primary = tweaks.primaryColor;
   const secondary = tweaks.secondaryColor;
 
-  const graded = QUESTIONS.map((q) => {
+  const graded = questions.map((q) => {
     const a = answers[q.id];
     if (q.type === "short") {
       const ok = typeof a === "string" && a.trim().length >= 30;
@@ -98,7 +97,7 @@ export default function Result({ tweaks, answers, onReview, onCertificate, onRet
 
   const correctCount = graded.filter((g) => g.ok).length;
   const scorePct = Math.round((correctCount / graded.length) * 100);
-  const passed = scorePct >= TEST_META.passingScore;
+  const passed = scorePct >= testMeta.passingScore;
 
   const topics = {};
   graded.forEach((g) => {
@@ -146,7 +145,7 @@ export default function Result({ tweaks, answers, onReview, onCertificate, onRet
                 </div>
                 <div className="score-line">
                   <span className="score-label">Điểm đạt yêu cầu</span>
-                  <span className="score-value">{TEST_META.passingScore}%</span>
+                  <span className="score-value">{testMeta.passingScore}%</span>
                 </div>
                 <div className="score-line">
                   <span className="score-label">Hoàn thành lúc</span>

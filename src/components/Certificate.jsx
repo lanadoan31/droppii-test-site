@@ -1,17 +1,16 @@
 import { DroppiiLogo, IconChat, BrandPattern } from "./Brand";
-import { QUESTIONS } from "../data/questions";
 
-export default function Certificate({ tweaks, seller, answers, onBack }) {
+export default function Certificate({ tweaks, seller, questions, answers, onBack }) {
   const primary = tweaks.primaryColor;
   const secondary = tweaks.secondaryColor;
 
-  const correctCount = QUESTIONS.filter((q) => {
+  const correctCount = questions.filter((q) => {
     const a = answers[q.id];
     if (q.type === "short") return typeof a === "string" && a.trim().length >= 30;
     const arr = Array.isArray(a) ? [...a].sort() : [];
     return JSON.stringify(arr) === JSON.stringify([...q.correct].sort());
   }).length;
-  const scorePct = Math.round((correctCount / QUESTIONS.length) * 100);
+  const scorePct = Math.round((correctCount / questions.length) * 100);
   const certNo = "DRP-AI-2026-" + (10000 + correctCount * 137).toString();
   const dateStr = new Date().toLocaleDateString("vi-VN", { day: "2-digit", month: "long", year: "numeric" });
 
