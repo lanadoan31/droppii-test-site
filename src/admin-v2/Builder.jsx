@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
 import { CATEGORIES, INITIAL_QUESTION_BANK } from './data-v2.js';
+import { getDraft, saveDraft } from './builderDraft.js';
+import { normalizeQuestion, validateQuestion, validateForPublish } from './testExport.js';
 
 const TYPE_LABELS = {
   'multiple-choice': 'Multiple choice',
@@ -11,13 +13,7 @@ const TYPE_LABELS = {
 
 function newQuestion(type = 'multiple-choice') {
   const id = 'bq' + Date.now() + Math.random().toString(36).slice(2, 6);
-  if (type === 'true-false') {
-    return { id, type, text: '', options: ['True', 'False'], correct: [0], explanation: '', points: 1 };
-  }
-  if (type === 'short-answer') {
-    return { id, type, text: '', keywords: '', explanation: '', points: 1 };
-  }
-  return { id, type, text: '', options: ['', '', '', ''], correct: [0], explanation: '', points: 1 };
+  return normalizeQuestion({ id, type });
 }
 
 function Pill({ status }) {
@@ -25,6 +21,7 @@ function Pill({ status }) {
   return <span className={`badge ${status}`}><span className="badge-dot" />{label}</span>;
 }
 
+// ── Option row ──────────────────────────────────────────────────────────────────
 function OptionRow({ option, index, isCorrect, type, onToggleCorrect, onChange, onRemove, canRemove }) {
   const isMulti = type === 'multi-select';
   return (
@@ -33,7 +30,7 @@ function OptionRow({ option, index, isCorrect, type, onToggleCorrect, onChange, 
         type="button"
         className={`opt-correct ${isMulti ? 'checkbox' : 'radio'}${isCorrect ? ' active' : ''}`}
         onClick={() => onToggleCorrect(index)}
-        aria-label={isCorrect ? 'Mark incorrect' : 'Mark correct'}
+        aria-label={isCorrect ? 'Correct answer' : 'Mark as correct'}
         title={isCorrect ? 'Correct answer' : 'Mark as correct'}
       >
         {isCorrect && <Icon name="check" size={10} strokeWidth={3} />}
@@ -60,40 +57,44 @@ function OptionRow({ option, index, isCorrect, type, onToggleCorrect, onChange, 
   );
 }
 
+// ── Question editor card ────────────────────────────────────────────────────────
 function QuestionEditor({ q, index, onUpdate, onDelete }) {
+  const errors = validateQuestion(q);
+  const hasTextError  = errors.includes('empty-text');
+  const hasCorrectError = errors.includes('no-correct');
+
   function toggleCorrect(idx) {
     if (q.type === 'multi-select') {
-      const correct = q.correct.includes(idx)
+      const next = q.correct.includes(idx)
         ? q.correct.filter((i) => i !== idx)
         : [...q.correct, idx];
-      onUpdate({ correct: correct.length ? correct : [idx] });
+      onUpdate({ correct: next.length ? next : [idx] });
     } else {
       onUpdate({ correct: [idx] });
     }
   }
 
   function updateOption(idx, val) {
-    const options = [...q.options];
+    const options = [...(q.options || [])];
     options[idx] = val;
     onUpdate({ options });
   }
 
   function removeOption(idx) {
-    const options = q.options.filter((_, i) => i !== idx);
-    const correct = q.correct
+    const options = (q.options || []).filter((_, i) => i !== idx);
+    const correct = (q.correct || [])
       .filter((i) => i !== idx)
       .map((i) => (i > idx ? i - 1 : i));
     onUpdate({ options, correct: correct.length ? correct : [0] });
   }
 
   function addOption() {
-    if (q.options.length >= 6) return;
-    onUpdate({ options: [...q.options, ''] });
+    if ((q.options || []).length >= 6) return;
+    onUpdate({ options: [...(q.options || []), ''] });
   }
 
   function changeType(newType) {
-    const base = newQuestion(newType);
-    onUpdate({ type: newType, options: base.options, correct: base.correct, keywords: base.keywords });
+    onUpdate({ type: newType, ...normalizeQuestion({ ...q, type: newType }) });
   }
 
   return (
@@ -120,7 +121,7 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
             min="1"
             max="10"
             value={q.points}
-            onChange={(e) => onUpdate({ points: Number(e.target.value) })}
+            onChange={(e) => onUpdate({ points: Math.max(1, Number(e.target.value) || 1) })}
             style={{ width: 60, marginBottom: 0 }}
           />
         </div>
@@ -135,17 +136,22 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
       </div>
 
       <div className="q-card-body">
+        {/* Question text */}
         <div className="field">
           <label className="field-label">Question</label>
           <textarea
-            className="textarea"
+            className={`textarea${hasTextError ? ' input-error' : ''}`}
             placeholder="Enter your question…"
             value={q.text}
             onChange={(e) => onUpdate({ text: e.target.value })}
             style={{ minHeight: 80 }}
           />
+          {hasTextError && (
+            <div className="field-error">Question text is required.</div>
+          )}
         </div>
 
+        {/* Answer options */}
         {q.type !== 'short-answer' && (
           <div className="field">
             <label className="field-label">
@@ -153,20 +159,23 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
                 ? 'Options — select all correct answers'
                 : 'Options — click the circle to mark correct'}
             </label>
-            {q.options.map((opt, i) => (
+            {(q.options || []).map((opt, i) => (
               <OptionRow
                 key={i}
                 option={opt}
                 index={i}
-                isCorrect={q.correct.includes(i)}
+                isCorrect={(q.correct || []).includes(i)}
                 type={q.type}
                 onToggleCorrect={toggleCorrect}
                 onChange={updateOption}
                 onRemove={removeOption}
-                canRemove={q.type !== 'true-false' && q.options.length > 2}
+                canRemove={q.type !== 'true-false' && (q.options || []).length > 2}
               />
             ))}
-            {q.type !== 'true-false' && q.options.length < 6 && (
+            {hasCorrectError && (
+              <div className="field-error">Mark at least one correct answer.</div>
+            )}
+            {q.type !== 'true-false' && (q.options || []).length < 6 && (
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
@@ -179,6 +188,7 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
           </div>
         )}
 
+        {/* Short-answer keywords */}
         {q.type === 'short-answer' && (
           <div className="field">
             <label className="field-label">
@@ -195,6 +205,7 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
           </div>
         )}
 
+        {/* Explanation */}
         <div className="field" style={{ marginBottom: 0 }}>
           <label className="field-label">
             Explanation{' '}
@@ -213,6 +224,7 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
   );
 }
 
+// ── Settings rail ───────────────────────────────────────────────────────────────
 function SettingsRail({
   category, setCategory,
   duration, setDuration,
@@ -225,6 +237,8 @@ function SettingsRail({
   requireWebcam, setRequireWebcam,
 }) {
   const isWindow = availability.type === 'window';
+  const scoreNum = Number(passingScore);
+  const scoreInvalid = isNaN(scoreNum) || scoreNum < 1 || scoreNum > 100;
 
   function fmtDt(val) {
     if (!val) return '';
@@ -262,13 +276,16 @@ function SettingsRail({
           <div className="field">
             <label className="field-label">Passing score (%)</label>
             <input
-              className="input"
+              className={`input${scoreInvalid ? ' input-error' : ''}`}
               type="number"
               min="1"
               max="100"
               value={passingScore}
               onChange={(e) => setPassingScore(e.target.value)}
             />
+            {scoreInvalid && (
+              <div className="field-error">Must be 1–100.</div>
+            )}
           </div>
         </div>
 
@@ -308,12 +325,8 @@ function SettingsRail({
             className={`avail-btn${isWindow ? ' active' : ''}`}
             onClick={() =>
               setAvailability({
-                type: 'window',
-                opens: '',
-                closes: '',
-                tz: 'Asia/Ho_Chi_Minh',
-                autoSubmitOnClose: false,
-                reminder15min: true,
+                type: 'window', opens: '', closes: '',
+                tz: 'Asia/Ho_Chi_Minh', autoSubmitOnClose: false, reminder15min: true,
               })
             }
           >
@@ -379,9 +392,7 @@ function SettingsRail({
             {availability.opens && availability.closes && (
               <div className="avail-callout">
                 <Icon name="clock" size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-                <span>
-                  {fmtDt(availability.opens)} &ndash; {fmtDt(availability.closes)}
-                </span>
+                <span>{fmtDt(availability.opens)} &ndash; {fmtDt(availability.closes)}</span>
               </div>
             )}
           </>
@@ -398,35 +409,19 @@ function SettingsRail({
         <div className="rail-section-title">Behavior</div>
 
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={randomizeQuestions}
-            onChange={(e) => setRandomizeQuestions(e.target.checked)}
-          />
+          <input type="checkbox" checked={randomizeQuestions} onChange={(e) => setRandomizeQuestions(e.target.checked)} />
           <span>Randomize question order</span>
         </label>
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={randomizeOptions}
-            onChange={(e) => setRandomizeOptions(e.target.checked)}
-          />
+          <input type="checkbox" checked={randomizeOptions} onChange={(e) => setRandomizeOptions(e.target.checked)} />
           <span>Randomize option order</span>
         </label>
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={showCorrectAnswers}
-            onChange={(e) => setShowCorrectAnswers(e.target.checked)}
-          />
+          <input type="checkbox" checked={showCorrectAnswers} onChange={(e) => setShowCorrectAnswers(e.target.checked)} />
           <span>Show correct answers after submit</span>
         </label>
         <label className="check-row">
-          <input
-            type="checkbox"
-            checked={requireWebcam}
-            onChange={(e) => setRequireWebcam(e.target.checked)}
-          />
+          <input type="checkbox" checked={requireWebcam} onChange={(e) => setRequireWebcam(e.target.checked)} />
           <span>Require webcam during test</span>
         </label>
       </div>
@@ -434,6 +429,8 @@ function SettingsRail({
   );
 }
 
+// ── Preview modal ───────────────────────────────────────────────────────────────
+// Uses the EXACT question data passed from Builder state — no transformation.
 function PreviewModal({ questions, test, onClose }) {
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -443,18 +440,11 @@ function PreviewModal({ questions, test, onClose }) {
       <div className="modal-backdrop" onClick={onClose}>
         <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
           <div className="modal-header">
-            <div>
-              <h2>Preview</h2>
-              <p>No questions to preview yet.</p>
-            </div>
-            <button className="icon-btn" onClick={onClose} aria-label="Close">
-              <Icon name="x" size={16} />
-            </button>
+            <div><h2>Preview</h2><p>No questions to preview yet.</p></div>
+            <button className="icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
           </div>
           <div className="modal-body" style={{ paddingBottom: 8 }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>
-              Add questions to the test before previewing.
-            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13.5 }}>Add questions to the test before previewing.</p>
           </div>
           <div className="modal-footer">
             <button className="btn btn-secondary" onClick={onClose}>Close</button>
@@ -493,21 +483,17 @@ function PreviewModal({ questions, test, onClose }) {
             <h2 id="preview-title" style={{ fontSize: 16 }}>{test?.title || 'Preview'}</h2>
             <p>Question {current + 1} of {questions.length}</p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <Icon name="x" size={16} />
-          </button>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
 
         <div className="modal-body">
-          <div className="preview-progress">
-            <div style={{ width: `${progress}%` }} />
-          </div>
+          <div className="preview-progress"><div style={{ width: `${progress}%` }} /></div>
 
           <p style={{ fontWeight: 600, marginTop: 16, marginBottom: 14, fontSize: 14.5 }}>
             {q.text || <em style={{ color: 'var(--text-faint)' }}>Untitled question</em>}
           </p>
 
-          {q.type !== 'short-answer' && q.options?.map((opt, i) => {
+          {q.type !== 'short-answer' && (q.options || []).map((opt, i) => {
             const sel = answers[q.id];
             const isSelected = q.type === 'multi-select'
               ? (Array.isArray(sel) && sel.includes(i))
@@ -549,13 +535,9 @@ function PreviewModal({ questions, test, onClose }) {
             Previous
           </button>
           {current < questions.length - 1 ? (
-            <button className="btn btn-primary" onClick={() => setCurrent((c) => c + 1)}>
-              Next
-            </button>
+            <button className="btn btn-primary" onClick={() => setCurrent((c) => c + 1)}>Next</button>
           ) : (
-            <button className="btn btn-primary" onClick={onClose}>
-              Done
-            </button>
+            <button className="btn btn-primary" onClick={onClose}>Done</button>
           )}
         </div>
       </div>
@@ -563,6 +545,7 @@ function PreviewModal({ questions, test, onClose }) {
   );
 }
 
+// ── Bank picker modal ───────────────────────────────────────────────────────────
 function BankPickerModal({ onAdd, onClose }) {
   const [selected, setSelected] = useState(new Set());
 
@@ -575,21 +558,11 @@ function BankPickerModal({ onAdd, onClose }) {
   }
 
   function handleAdd() {
-    const ids = [...selected];
     const qs = INITIAL_QUESTION_BANK
-      .filter((b) => ids.includes(b.id))
+      .filter((b) => selected.has(b.id))
       .map((b) => {
         const type = ['fill-blank', 'matching'].includes(b.type) ? 'short-answer' : b.type;
-        return {
-          id: 'bq' + Date.now() + Math.random().toString(36).slice(2, 5),
-          type,
-          text: b.text,
-          options: type === 'true-false' ? ['True', 'False'] : ['', '', '', ''],
-          correct: [0],
-          keywords: '',
-          explanation: '',
-          points: 1,
-        };
+        return normalizeQuestion({ id: 'bq' + Date.now() + Math.random().toString(36).slice(2, 5), type, text: b.text });
       });
     onAdd(qs);
     onClose();
@@ -610,9 +583,7 @@ function BankPickerModal({ onAdd, onClose }) {
             <h2 id="bank-title">Question bank</h2>
             <p>Select questions to add to this test.</p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Close">
-            <Icon name="x" size={16} />
-          </button>
+          <button className="icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
         </div>
 
         <div className="modal-body">
@@ -623,19 +594,14 @@ function BankPickerModal({ onAdd, onClose }) {
                 className={`bank-item${selected.has(q.id) ? ' selected' : ''}`}
                 onClick={() => toggle(q.id)}
               >
-                <span
-                  className={`opt-correct checkbox${selected.has(q.id) ? ' active' : ''}`}
-                  aria-hidden="true"
-                >
+                <span className={`opt-correct checkbox${selected.has(q.id) ? ' active' : ''}`} aria-hidden="true">
                   {selected.has(q.id) && <Icon name="check" size={10} strokeWidth={3} />}
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 4 }}>{q.text}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span className="badge brand" style={{ fontSize: 10.5 }}>{q.category}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                      {TYPE_LABELS[q.type] || q.type}
-                    </span>
+                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{TYPE_LABELS[q.type] || q.type}</span>
                     <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{q.difficulty}</span>
                     <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
                       Used in {q.usedInCount} test{q.usedInCount !== 1 ? 's' : ''}
@@ -649,13 +615,8 @@ function BankPickerModal({ onAdd, onClose }) {
 
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button
-            className="btn btn-primary"
-            disabled={selected.size === 0}
-            onClick={handleAdd}
-          >
-            Add {selected.size > 0 ? `${selected.size} ` : ''}
-            question{selected.size !== 1 ? 's' : ''}
+          <button className="btn btn-primary" disabled={selected.size === 0} onClick={handleAdd}>
+            Add {selected.size > 0 ? `${selected.size} ` : ''}question{selected.size !== 1 ? 's' : ''}
           </button>
         </div>
       </div>
@@ -663,29 +624,51 @@ function BankPickerModal({ onAdd, onClose }) {
   );
 }
 
+// ── Builder (main component) ────────────────────────────────────────────────────
 export default function Builder({ tests, setTests, testId, navigate, showToast }) {
   const test = tests.find((t) => t.id === testId);
 
-  const [questions,          setQuestions]          = useState(() => test?.questionsList || []);
-  const [activeId,           setActiveId]           = useState(() => test?.questionsList?.[0]?.id || null);
-  const [title,              setTitle]              = useState(() => test?.title || '');
-  const [category,           setCategory]           = useState(() => test?.category || 'Onboarding');
-  const [duration,           setDuration]           = useState(() => test?.duration || 30);
-  const [passingScore,       setPassingScore]       = useState(() => test?.passingScore || 70);
-  const [maxAttempts,        setMaxAttempts]        = useState(() => test?.maxAttempts || 'unlimited');
-  const [availability,       setAvailability]       = useState(() => test?.availability || { type: 'always' });
-  const [randomizeQuestions, setRandomizeQuestions] = useState(() => test?.randomizeQuestions ?? true);
-  const [randomizeOptions,   setRandomizeOptions]   = useState(() => test?.randomizeOptions ?? true);
-  const [showCorrectAnswers, setShowCorrectAnswers] = useState(() => test?.showCorrectAnswers ?? true);
-  const [requireWebcam,      setRequireWebcam]      = useState(() => test?.requireWebcam ?? false);
+  // Initialize from persistent draft (survives navigation) or test data.
+  // All state is seeded once — subsequent updates stay in local state until Save.
+  const [questions, setQuestions] = useState(() => {
+    const d = getDraft(testId);
+    return (d?.questions || test?.questionsList || []).map(normalizeQuestion);
+  });
+  const [activeId, setActiveId] = useState(() => {
+    const d = getDraft(testId);
+    const qs = d?.questions || test?.questionsList || [];
+    const id = d?.activeId || qs[0]?.id || null;
+    return qs.some((q) => q.id === id) ? id : (qs[0]?.id || null);
+  });
+  const [title,              setTitle]              = useState(() => { const d = getDraft(testId); return (d ?? test)?.title ?? ''; });
+  const [category,           setCategory]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.category ?? 'Onboarding'; });
+  const [duration,           setDuration]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.duration ?? 30; });
+  const [passingScore,       setPassingScore]       = useState(() => { const d = getDraft(testId); return (d ?? test)?.passingScore ?? 70; });
+  const [maxAttempts,        setMaxAttempts]        = useState(() => { const d = getDraft(testId); return (d ?? test)?.maxAttempts ?? 'unlimited'; });
+  const [availability,       setAvailability]       = useState(() => { const d = getDraft(testId); return (d ?? test)?.availability ?? { type: 'always' }; });
+  const [randomizeQuestions, setRandomizeQuestions] = useState(() => { const d = getDraft(testId); return (d ?? test)?.randomizeQuestions ?? true; });
+  const [randomizeOptions,   setRandomizeOptions]   = useState(() => { const d = getDraft(testId); return (d ?? test)?.randomizeOptions ?? true; });
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(() => { const d = getDraft(testId); return (d ?? test)?.showCorrectAnswers ?? true; });
+  const [requireWebcam,      setRequireWebcam]      = useState(() => { const d = getDraft(testId); return (d ?? test)?.requireWebcam ?? false; });
   const [modal,              setModal]              = useState(null);
+
+  // Persist draft on navigation away. Ref always holds latest state — safe in cleanup.
+  const draftRef = useRef(null);
+  draftRef.current = {
+    testId, questions, activeId, title, category, duration, passingScore,
+    maxAttempts, availability, randomizeQuestions, randomizeOptions,
+    showCorrectAnswers, requireWebcam,
+  };
+  useEffect(() => {
+    return () => { if (draftRef.current) saveDraft(draftRef.current.testId, draftRef.current); };
+  }, []); // intentionally empty — cleanup runs on unmount only
 
   if (!test) {
     navigate('tests');
     return null;
   }
 
-  const activeQ = questions.find((q) => q.id === activeId);
+  const activeQ   = questions.find((q) => q.id === activeId);
   const activeIdx = questions.findIndex((q) => q.id === activeId);
 
   function addQuestion(type = 'multiple-choice') {
@@ -727,38 +710,52 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   }
 
   function save(newStatus) {
+    // Hard validation for publish
+    if (newStatus === 'published') {
+      const errors = validateForPublish(questions, passingScore);
+      if (errors.length > 0) {
+        showToast(errors[0]);
+        return;
+      }
+    }
+
+    const scoreNum = Math.max(1, Math.min(100, Number(passingScore) || 70));
+    const durNum   = Math.max(1, Math.min(180, Number(duration) || 30));
+
     const patch = {
-      title,
+      title:        title.trim() || test.title,
       category,
-      duration: Number(duration),
-      passingScore: Number(passingScore),
+      duration:     durNum,
+      passingScore: scoreNum,
       maxAttempts,
       availability,
       randomizeQuestions,
       randomizeOptions,
       showCorrectAnswers,
       requireWebcam,
-      questions: questions.length,
+      questions:    questions.length,
       questionsList: questions,
-      updatedAt: 'just now',
+      updatedAt:    'just now',
     };
     if (newStatus) patch.status = newStatus;
+
     setTests((prev) => prev.map((t) => (t.id === testId ? { ...t, ...patch } : t)));
-    showToast(newStatus === 'published' ? 'Test published' : 'Draft saved');
+
+    const toastMsg = newStatus === 'published' ? 'Test published'
+      : newStatus === 'draft' ? 'Test unpublished'
+      : 'Draft saved';
+    showToast(toastMsg);
   }
 
-  const isPublished = test.status === 'published';
+  const isPublished   = test.status === 'published';
+  const canPublish    = questions.length > 0;
+  const invalidCount  = questions.filter((q) => validateQuestion(q).length > 0).length;
 
   return (
     <div className="builder-outer">
       {/* Sub-header */}
       <div className="builder-header">
-        <button
-          className="icon-btn"
-          onClick={() => navigate('tests')}
-          title="Back to tests"
-          aria-label="Back to tests"
-        >
+        <button className="icon-btn" onClick={() => navigate('tests')} title="Back to tests" aria-label="Back to tests">
           <Icon name="chevLeft" size={18} />
         </button>
 
@@ -773,6 +770,11 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
 
         <span className="builder-q-count">
           {questions.length} question{questions.length !== 1 ? 's' : ''}
+          {invalidCount > 0 && (
+            <span className="builder-warn-badge" title={`${invalidCount} question${invalidCount !== 1 ? 's' : ''} need attention`}>
+              {invalidCount}
+            </span>
+          )}
         </span>
 
         <div style={{ flex: 1 }} />
@@ -786,6 +788,8 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
         <button
           className="btn btn-primary btn-sm"
           onClick={() => save(isPublished ? 'draft' : 'published')}
+          disabled={!isPublished && !canPublish}
+          title={!isPublished && !canPublish ? 'Add at least one question to publish' : undefined}
         >
           {isPublished ? 'Unpublish' : 'Publish'}
         </button>
@@ -806,38 +810,44 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
                 No questions yet — add one below.
               </div>
             )}
-            {questions.map((q, i) => (
-              <div
-                key={q.id}
-                className={`q-list-item${activeId === q.id ? ' active' : ''}`}
-                onClick={() => setActiveId(q.id)}
-              >
-                <span className="q-num">{i + 1}</span>
-                <span className="q-list-text">
-                  {q.text || <span style={{ color: 'var(--text-faint)', fontStyle: 'italic' }}>Untitled</span>}
-                </span>
-                <div className="q-list-actions">
-                  <button
-                    className="icon-btn q-move-btn"
-                    style={{ width: 22, height: 22 }}
-                    onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, -1); }}
-                    disabled={i === 0}
-                    aria-label="Move up"
-                  >
-                    <Icon name="chevLeft" size={11} style={{ transform: 'rotate(90deg)' }} />
-                  </button>
-                  <button
-                    className="icon-btn q-move-btn"
-                    style={{ width: 22, height: 22 }}
-                    onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, 1); }}
-                    disabled={i === questions.length - 1}
-                    aria-label="Move down"
-                  >
-                    <Icon name="chevLeft" size={11} style={{ transform: 'rotate(-90deg)' }} />
-                  </button>
+            {questions.map((q, i) => {
+              const qErrors = validateQuestion(q);
+              return (
+                <div
+                  key={q.id}
+                  className={`q-list-item${activeId === q.id ? ' active' : ''}`}
+                  onClick={() => setActiveId(q.id)}
+                >
+                  <span className="q-num">{i + 1}</span>
+                  <span className="q-list-text">
+                    {q.text || <span style={{ color: 'var(--text-faint)', fontStyle: 'italic' }}>Untitled</span>}
+                  </span>
+                  {qErrors.length > 0 && (
+                    <span className="q-error-dot" aria-label="Needs attention" title="Question has missing required fields" />
+                  )}
+                  <div className="q-list-actions">
+                    <button
+                      className="icon-btn q-move-btn"
+                      style={{ width: 22, height: 22 }}
+                      onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, -1); }}
+                      disabled={i === 0}
+                      aria-label="Move up"
+                    >
+                      <Icon name="chevLeft" size={11} style={{ transform: 'rotate(90deg)' }} />
+                    </button>
+                    <button
+                      className="icon-btn q-move-btn"
+                      style={{ width: 22, height: 22 }}
+                      onClick={(e) => { e.stopPropagation(); moveQuestion(q.id, 1); }}
+                      disabled={i === questions.length - 1}
+                      aria-label="Move down"
+                    >
+                      <Icon name="chevLeft" size={11} style={{ transform: 'rotate(-90deg)' }} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="pane-add-section">
@@ -871,12 +881,8 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
           {!activeQ && (
             <div className="builder-empty">
               <div className="empty-icon"><Icon name="tests" size={22} /></div>
-              <div style={{ fontWeight: 600, color: 'var(--ink-800)', marginBottom: 6 }}>
-                No question selected
-              </div>
-              <div style={{ fontSize: 13 }}>
-                Add a question from the left panel to start editing.
-              </div>
+              <div style={{ fontWeight: 600, color: 'var(--ink-800)', marginBottom: 6 }}>No question selected</div>
+              <div style={{ fontSize: 13 }}>Add a question from the left panel to start editing.</div>
             </div>
           )}
           {activeQ && (
@@ -904,7 +910,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
       </div>
 
       {modal === 'preview' && (
-        <PreviewModal questions={questions} test={test} onClose={() => setModal(null)} />
+        <PreviewModal questions={questions} test={{ ...test, title }} onClose={() => setModal(null)} />
       )}
       {modal === 'bank' && (
         <BankPickerModal onAdd={addFromBank} onClose={() => setModal(null)} />

@@ -61,15 +61,16 @@ export default function AdminAppV2() {
     const id = 't' + Date.now();
     const newTest = {
       id,
-      title:        data.title,
-      category:     data.category,
-      description:  data.description || '',
-      status:       'draft',
-      questions:    0,
-      duration:     Number(data.duration) || 30,
-      passingScore: Number(data.passingScore) || 70,
-      maxAttempts:  'unlimited',
-      availability: data.availability === 'window'
+      title:         data.title,
+      category:      data.category,
+      description:   data.description || '',
+      status:        'draft',
+      questions:     0,
+      questionsList: [],
+      duration:      Number(data.duration) || 30,
+      passingScore:  Number(data.passingScore) || 70,
+      maxAttempts:   'unlimited',
+      availability:  data.availability === 'window'
         ? makeWindow(data.opens, data.closes)
         : makeAlways(),
       randomizeQuestions: true,

@@ -1229,3 +1229,40 @@
 }
 .v2 .preview-option:hover { border-color: var(--brand); background: var(--brand-50); }
 .v2 .preview-option.selected { border-color: var(--brand); background: var(--brand-50); }
+
+/* ── Validation indicators ─────────────────────────────── */
+.v2 .field-error {
+  font-size: 12px;
+  color: var(--accent-red);
+  margin-top: -2px;
+}
+
+.v2 .input-error,
+.v2 .textarea.input-error {
+  border-color: var(--accent-red) !important;
+}
+
+.v2 .q-error-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.v2 .builder-warn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-red);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  padding: 0 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
