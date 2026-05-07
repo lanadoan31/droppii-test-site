@@ -1266,3 +1266,49 @@
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* ── Results page ──────────────────────────────────────────────────────────── */
+.v2 .results-table-wrap {
+  padding: 20px 24px;
+  overflow-x: auto;
+}
+
+.v2 .results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.v2 .results-table th {
+  text-align: left;
+  padding: 8px 14px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.v2 .results-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink-800);
+  vertical-align: middle;
+}
+
+.v2 .results-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.v2 .results-table tbody tr:hover td {
+  background: var(--surface-hover);
+}
+
+.v2 .results-empty {
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 14px;
+}

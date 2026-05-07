@@ -5,7 +5,9 @@ import Test from "./components/Test";
 import Result from "./components/Result";
 import Certificate from "./components/Certificate";
 import { TEST_META, QUESTIONS } from "./data/questions";
-import { getLatestPublishedTest, adaptForSeller } from "./data/testStore";
+import { getAllPublishedTests, adaptForSeller } from "./data/testStore";
+import { saveTestResult } from "./data/resultStore";
+import TestSelect from "./components/TestSelect";
 
 const BRANCH_PRESETS = {
   marketplace: { primaryColor: "#F26B1F", secondaryColor: "#1E73BE", bgColor: "#FAF7F2" },
@@ -23,17 +25,19 @@ const DEFAULT_TWEAKS = {
 };
 
 export default function App() {
-  const [{ questions, testMeta }] = useState(() => {
-    const pub = getLatestPublishedTest();
-    return pub ? adaptForSeller(pub) : { questions: QUESTIONS, testMeta: TEST_META };
-  });
+  // selectedTest holds the adapted { questions, testMeta } for the active test.
+  // Initialized with hardcoded fallback so Tweaks panel jump-to-screen always works.
+  const [selectedTest, setSelectedTest] = useState({ questions: QUESTIONS, testMeta: TEST_META });
+  const [allTests,     setAllTests]     = useState(() => getAllPublishedTests());
 
   const [tweaks, setTweaksState] = useState(DEFAULT_TWEAKS);
-  const [stage, setStage] = useState("entry"); // entry | pretest | test | result | cert
+  const [stage, setStage] = useState("entry"); // entry | select | pretest | test | result | cert
   const [seller, setSeller] = useState(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(testMeta.durationMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(TEST_META.durationMinutes * 60);
+
+  const { questions, testMeta } = selectedTest;
 
   const setTweak = (keyOrEdits, val) => {
     setTweaksState((prev) => {
@@ -59,6 +63,14 @@ export default function App() {
 
   const handleSellerContinue = (sellerInfo) => {
     setSeller(sellerInfo);
+    setAllTests(getAllPublishedTests()); // refresh in case new tests were published
+    setStage("select");
+  };
+
+  const handleSelectTest = (exportedTest) => {
+    const adapted = adaptForSeller(exportedTest);
+    setSelectedTest(adapted);
+    setTimeLeft(adapted.testMeta.durationMinutes * 60);
     setStage("pretest");
   };
 
@@ -71,7 +83,33 @@ export default function App() {
 
   const handleAnswer = (qid, val) => setAnswers((a) => ({ ...a, [qid]: val }));
 
-  const handleSubmit = () => setStage("result");
+  const handleSubmit = () => {
+    // compute score and persist result
+    let correct = 0;
+    questions.forEach((q) => {
+      const a = answers[q.id];
+      if (q.type === "short") {
+        if (typeof a === "string" && a.trim().length >= 30) correct++;
+      } else {
+        const arr = Array.isArray(a) ? [...a].sort() : [];
+        const expected = [...(q.correct || [])].sort();
+        if (JSON.stringify(arr) === JSON.stringify(expected)) correct++;
+      }
+    });
+    const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
+    saveTestResult({
+      testId:         testMeta.id || "demo",
+      testTitle:      testMeta.title,
+      userName:       seller?.name || "Nhà bán hàng",
+      userId:         seller?.id   || "DRP-SLR-00000",
+      score,
+      passed:         score >= testMeta.passingScore,
+      correctCount:   correct,
+      totalQuestions: questions.length,
+      submittedAt:    new Date().toISOString(),
+    });
+    setStage("result");
+  };
 
   const handleAbort = () => {
     if (window.confirm("Bạn có chắc muốn thoát? Bài làm sẽ không được lưu.")) {
@@ -89,6 +127,9 @@ export default function App() {
     <>
       {stage === "entry" && (
         <SellerEntry tweaks={tweaks} onContinue={handleSellerContinue} />
+      )}
+      {stage === "select" && (
+        <TestSelect tweaks={tweaks} seller={demoSeller} tests={allTests} onSelect={handleSelectTest} />
       )}
       {stage === "pretest" && (
         <PreTest tweaks={tweaks} seller={demoSeller} testMeta={testMeta} onStart={handleStart} />
@@ -239,11 +280,12 @@ function TweaksPanel({ tweaks, setTweak, stage, setStage }) {
                 label="Stage"
                 value={stage}
                 options={[
-                  { value: "entry", label: "Entry" },
+                  { value: "entry",   label: "Entry" },
+                  { value: "select",  label: "Select" },
                   { value: "pretest", label: "Intro" },
-                  { value: "test", label: "Test" },
-                  { value: "result", label: "Result" },
-                  { value: "cert", label: "Cert" },
+                  { value: "test",    label: "Test" },
+                  { value: "result",  label: "Result" },
+                  { value: "cert",    label: "Cert" },
                 ]}
                 onChange={(v) => setStage(v)}
               />

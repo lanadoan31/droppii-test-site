@@ -1,9 +1,18 @@
-// sessionStorage-backed store for published tests.
-// Bridges admin-v2 export format to the seller test flow format.
+// sessionStorage-backed store for published tests (keyed by test ID).
+// Bridges admin-v2 export format → seller flow format.
 
-const STORE_KEY = 'droppii_published_test';
+const STORE_KEY = 'droppii_published_tests';
 
 const LETTER_IDS = ['a', 'b', 'c', 'd', 'e', 'f'];
+
+function getAllRaw() {
+  try {
+    const raw = sessionStorage.getItem(STORE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
 
 function typeToSeller(adminType) {
   switch (adminType) {
@@ -41,6 +50,7 @@ export function adaptForSeller(exportedTest) {
   });
 
   const testMeta = {
+    id:              exportedTest.id,
     title:           exportedTest.title,
     subtitle:        exportedTest.description || 'Bài kiểm tra kiến thức',
     durationMinutes: exportedTest.duration,
@@ -54,17 +64,18 @@ export function adaptForSeller(exportedTest) {
 
 export function publishTest(exportedTest) {
   try {
-    sessionStorage.setItem(STORE_KEY, JSON.stringify(exportedTest));
+    const all = getAllRaw();
+    all[exportedTest.id] = exportedTest;
+    sessionStorage.setItem(STORE_KEY, JSON.stringify(all));
   } catch {
-    // sessionStorage unavailable — silently skip
+    // sessionStorage unavailable
   }
 }
 
-export function getLatestPublishedTest() {
-  try {
-    const raw = sessionStorage.getItem(STORE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+export function getAllPublishedTests() {
+  return Object.values(getAllRaw());
+}
+
+export function getTestById(testId) {
+  return getAllRaw()[testId] || null;
 }
