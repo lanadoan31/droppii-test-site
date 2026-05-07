@@ -65,6 +65,18 @@ export function validateForPublish(questions, passingScore) {
   return errors;
 }
 
+// ── Availability normalizer ────────────────────────────────────────────────────
+// Converts internal admin availability format to the portable { type, startAt, endAt } shape.
+function normalizeAvailability(avail) {
+  if (!avail || avail.type === 'always') {
+    return { type: 'always', startAt: null, endAt: null };
+  }
+  // 'window' (internal) → 'scheduled' (exported)
+  const startAt = avail.opens  ? new Date(avail.opens).toISOString()  : null;
+  const endAt   = avail.closes ? new Date(avail.closes).toISOString() : null;
+  return { type: 'scheduled', startAt, endAt };
+}
+
 // ── Export ─────────────────────────────────────────────────────────────────────
 // Converts the admin-v2 test object into a portable format for the seller test flow.
 export function exportTest(test) {
@@ -99,7 +111,7 @@ export function exportTest(test) {
     duration:     test.duration,
     passingScore: test.passingScore,
     maxAttempts:  test.maxAttempts,
-    availability: test.availability,
+    availability: normalizeAvailability(test.availability),
     config: {
       randomizeQuestions: test.randomizeQuestions,
       randomizeOptions:   test.randomizeOptions,

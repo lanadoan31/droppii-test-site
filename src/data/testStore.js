@@ -72,8 +72,23 @@ export function publishTest(exportedTest) {
   }
 }
 
+// Returns true if this exported test should be visible to a seller right now.
+export function isTestAvailable(test) {
+  const { status, availability } = test;
+  if (status === 'draft' || status === 'archived') return false;
+  if (status === 'published') return true;
+  if (status === 'scheduled') {
+    const now = Date.now();
+    const { startAt, endAt } = availability || {};
+    if (startAt && new Date(startAt).getTime() > now) return false; // not started yet
+    if (endAt   && new Date(endAt).getTime()   < now) return false; // already ended
+    return true;
+  }
+  return false;
+}
+
 export function getAllPublishedTests() {
-  return Object.values(getAllRaw());
+  return Object.values(getAllRaw()).filter(isTestAvailable);
 }
 
 export function getTestById(testId) {

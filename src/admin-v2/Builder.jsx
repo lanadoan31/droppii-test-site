@@ -711,11 +711,19 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   }
 
   function save(newStatus) {
-    // Hard validation for publish
     if (newStatus === 'published') {
       const errors = validateForPublish(questions, passingScore);
-      if (errors.length > 0) {
-        showToast(errors[0]);
+      if (errors.length > 0) { showToast(errors[0]); return; }
+    }
+    if (newStatus === 'scheduled') {
+      const errors = validateForPublish(questions, passingScore);
+      if (errors.length > 0) { showToast(errors[0]); return; }
+      if (availability.type !== 'window' || !availability.opens || !availability.closes) {
+        showToast('Set opens and closes times in Availability before scheduling.');
+        return;
+      }
+      if (new Date(availability.opens) >= new Date(availability.closes)) {
+        showToast('Opens time must be before closes time.');
         return;
       }
     }
@@ -742,19 +750,35 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
 
     setTests((prev) => prev.map((t) => (t.id === testId ? { ...t, ...patch } : t)));
 
-    if (newStatus === 'published') {
+    // Sync any status change to the store so the seller view stays accurate.
+    if (newStatus) {
       publishTest(exportTest({ ...test, ...patch }));
     }
 
-    const toastMsg = newStatus === 'published' ? 'Test published'
-      : newStatus === 'draft' ? 'Test unpublished'
-      : 'Draft saved';
-    showToast(toastMsg);
+    const TOAST = {
+      published:  'Test published',
+      scheduled:  'Test scheduled',
+      archived:   'Test archived',
+      draft:      'Moved to draft',
+    };
+    showToast(TOAST[newStatus] || 'Draft saved');
   }
 
-  const isPublished   = test.status === 'published';
+  const isActive      = test.status === 'published' || test.status === 'scheduled';
+  const isArchived    = test.status === 'archived';
   const canPublish    = questions.length > 0;
   const invalidCount  = questions.filter((q) => validateQuestion(q).length > 0).length;
+
+  // Label and target status for the primary action button
+  const primaryLabel = test.status === 'published' ? 'Unpublish'
+    : test.status === 'scheduled' ? 'Unschedule'
+    : test.status === 'archived'  ? 'Restore'
+    : availability.type === 'window' ? 'Schedule'
+    : 'Publish';
+  const primaryTarget = isActive ? 'draft'
+    : isArchived ? 'draft'
+    : availability.type === 'window' ? 'scheduled'
+    : 'published';
 
   return (
     <div className="builder-outer">
@@ -790,13 +814,18 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
         <button className="btn btn-secondary btn-sm" onClick={() => save(null)}>
           Save draft
         </button>
+        {!isArchived && (
+          <button className="btn btn-secondary btn-sm" onClick={() => save('archived')}>
+            Archive
+          </button>
+        )}
         <button
           className="btn btn-primary btn-sm"
-          onClick={() => save(isPublished ? 'draft' : 'published')}
-          disabled={!isPublished && !canPublish}
-          title={!isPublished && !canPublish ? 'Add at least one question to publish' : undefined}
+          onClick={() => save(primaryTarget)}
+          disabled={!isActive && !isArchived && !canPublish}
+          title={!isActive && !isArchived && !canPublish ? 'Add at least one question first' : undefined}
         >
-          {isPublished ? 'Unpublish' : 'Publish'}
+          {primaryLabel}
         </button>
       </div>
 
