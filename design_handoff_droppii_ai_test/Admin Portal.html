@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Droppii Admin — Quản lý Bài kiểm tra Kiến thức AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="brand.css">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; }
+  #root { height: 100vh; }
+  .ab-frame { width: 100%; height: 100%; overflow: hidden; border-radius: 14px; background: white; display:flex; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="quiz-data.js"></script>
+  <script src="admin-data.js"></script>
+  <script src="droppii-sync.js"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="admin-shell.jsx"></script>
+  <script type="text/babel" src="admin-dashboard.jsx"></script>
+  <script type="text/babel" src="admin-tests.jsx"></script>
+  <script type="text/babel" src="admin-screens.jsx"></script>
+  <script type="text/babel" src="admin-extra.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "primaryBlue": "#0f4c9c",
+      "navStyle": "Sidebar",
+      "tableDensity": "Comfortable"
+    }/*EDITMODE-END*/;
+
+    function AdminFrame({ active, children }) {
+      // Wrap any screen with the sidebar to make it look like a real portal
+      return (
+        <div className="dr-app" style={{display:'flex', height:'100%', background:'var(--ink-50)'}}>
+          <AdmSidebar active={active}/>
+          {children}
+        </div>
+      );
+    }
+
+    function App() {
+      const [tweaks, setTweak, panelOpen, setPanelOpen] = useTweaks(TWEAK_DEFAULTS);
+
+      React.useEffect(() => {
+        document.documentElement.style.setProperty('--droppii-blue-700', tweaks.primaryBlue);
+      }, [tweaks.primaryBlue]);
+
+      const W = 1280, H = 820;
+
+      return (
+        <>
+          <DesignCanvas>
+            <DCSection id="core" title="Trải nghiệm cốt lõi của Admin" subtitle="Vòng lặp chính: tạo bài → xem kết quả. Đây là 2 màn hình ưu tiên cao nhất.">
+              <DCArtboard id="dashboard" label="01 · Tổng quan (Dashboard)" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="dashboard"><AdmDashboard/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="test-create" label="02a · Tạo bài kiểm tra mới (4 bước)" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="tests"><AdmTestCreate/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="test-editor" label="02b · Chỉnh sửa bài kiểm tra" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="tests"><AdmTestEditor/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="analytics" label="03 · Phân tích kết quả" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="analytics"><AdmAnalytics/></AdminFrame></div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="manage" title="Quản lý nội dung & người dùng" subtitle="Danh sách bài kiểm tra, ngân hàng câu hỏi, danh sách nhà bán hàng.">
+              <DCArtboard id="test-list" label="04 · Danh sách bài kiểm tra" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="tests"><AdmTestList/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="qbank" label="05 · Ngân hàng câu hỏi" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="questions"><AdmQuestionBank/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="qeditor" label="05a · Soạn câu hỏi mới" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="questions"><AdmQuestionEditor/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="sellers" label="06 · Quản lý nhà bán hàng" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="sellers"><AdmSellers/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="seller-detail" label="06a · Hồ sơ nhà bán hàng" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="sellers"><AdmSellerDetail/></AdminFrame></div>
+              </DCArtboard>
+              <DCArtboard id="reports" label="07 · Báo cáo & Xuất file" width={W} height={H}>
+                <div className="ab-frame"><AdminFrame active="reports"><AdmReports/></AdminFrame></div>
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel open={panelOpen} onClose={() => setPanelOpen(false)} title="Tweaks">
+            <TweakSection title="Brand">
+              <TweakColor label="Primary blue" value={tweaks.primaryBlue} options={['#0f4c9c','#1660bf','#062a55','#1c2638']} onChange={v => setTweak('primaryBlue', v)}/>
+            </TweakSection>
+            <TweakSection title="Layout">
+              <TweakRadio label="Navigation" value={tweaks.navStyle} options={['Sidebar','Topbar']} onChange={v => setTweak('navStyle', v)}/>
+              <TweakRadio label="Table density" value={tweaks.tableDensity} options={['Compact','Comfortable']} onChange={v => setTweak('tableDensity', v)}/>
+            </TweakSection>
+            <TweakSection title="Quick links">
+              <a href="Seller AI Test.html" style={{display:'block', padding:'10px 12px', background:'var(--droppii-blue-50)', color:'var(--droppii-blue-700)', textDecoration:'none', borderRadius:8, fontSize:13, fontWeight:600}}>
+                → Mở giao diện nhà bán hàng
+              </a>
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

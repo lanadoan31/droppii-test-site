@@ -1,0 +1,159 @@
+/* Droppii Brand tokens — based on Brand Design Guideline 06/2022
+   Business branch palette: blue primary + orange/grey support.
+   Font: Be Vietnam Pro (8 weights, Google Fonts). */
+
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  /* Business primary (blue) */
+  --droppii-blue-900: #062a55;
+  --droppii-blue-800: #0a3a73;
+  --droppii-blue-700: #0f4c9c;
+  --droppii-blue-600: #1660bf;
+  --droppii-blue-500: #2978d8;
+  --droppii-blue-100: #e6f0fc;
+  --droppii-blue-50:  #f3f7fd;
+
+  /* Commerce / accent (orange) */
+  --droppii-orange-700: #d24a14;
+  --droppii-orange-600: #ee5a22;
+  --droppii-orange-500: #f47339;
+  --droppii-orange-100: #fdece2;
+
+  /* Supportive */
+  --droppii-yellow: #f7c948;
+  --droppii-mint:   #6bc6a8;
+  --droppii-mint-100: #e3f4ee;
+
+  /* Neutrals (warm-leaning grey) */
+  --ink-900: #0e1726;
+  --ink-800: #1c2638;
+  --ink-700: #344054;
+  --ink-600: #475467;
+  --ink-500: #667085;
+  --ink-400: #98a2b3;
+  --ink-300: #d0d5dd;
+  --ink-200: #e4e7ec;
+  --ink-100: #f2f4f7;
+  --ink-50:  #f8f9fb;
+  --paper:   #ffffff;
+
+  /* Status */
+  --success-700: #027a48;
+  --success-500: #12b76a;
+  --success-100: #d1fadf;
+  --danger-700: #b42318;
+  --danger-500: #f04438;
+  --danger-100: #fee4e2;
+  --warning-500: #f79009;
+
+  /* Type */
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* Shadows */
+  --sh-1: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  --sh-2: 0 4px 12px rgba(16, 24, 40, .08), 0 2px 4px rgba(16, 24, 40, .04);
+  --sh-3: 0 12px 32px rgba(15, 76, 156, .12), 0 6px 12px rgba(16, 24, 40, .06);
+}
+
+/* Scoped reset for artboards (don't bleed canvas chrome) */
+.dr-app {
+  font-family: var(--font-sans);
+  color: var(--ink-900);
+  font-size: 15px;
+  line-height: 1.5;
+  font-feature-settings: "ss01", "cv01";
+  -webkit-font-smoothing: antialiased;
+}
+.dr-app *, .dr-app *::before, .dr-app *::after { box-sizing: border-box; }
+.dr-app button { font: inherit; color: inherit; }
+
+/* Logo mark — a Droppii droplet/chat shape with two "ii" eyes */
+.dr-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.dr-logo .mark { width: 1.2em; height: 1.2em; color: var(--droppii-blue-700); }
+.dr-logo .word { font-size: 1.05em; }
+
+/* Common buttons */
+.dr-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 44px; padding: 0 20px;
+  border-radius: var(--r-sm);
+  font-weight: 600; font-size: 15px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .04s, box-shadow .15s;
+  white-space: nowrap;
+}
+.dr-btn:active { transform: translateY(1px); }
+.dr-btn-primary {
+  background: var(--droppii-blue-700); color: white;
+  box-shadow: 0 1px 0 rgba(255,255,255,.15) inset, 0 1px 2px rgba(6, 42, 85, .2);
+}
+.dr-btn-primary:hover { background: var(--droppii-blue-800); }
+.dr-btn-secondary {
+  background: white; color: var(--droppii-blue-700);
+  border-color: var(--ink-300);
+}
+.dr-btn-secondary:hover { border-color: var(--droppii-blue-700); background: var(--droppii-blue-50); }
+.dr-btn-ghost {
+  background: transparent; color: var(--ink-700);
+}
+.dr-btn-ghost:hover { background: var(--ink-100); }
+.dr-btn-warm {
+  background: var(--droppii-orange-600); color: white;
+}
+.dr-btn-warm:hover { background: var(--droppii-orange-700); }
+.dr-btn-lg { height: 52px; padding: 0 28px; font-size: 16px; border-radius: var(--r-md); }
+.dr-btn-block { width: 100%; }
+.dr-btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* Form */
+.dr-input {
+  display: block; width: 100%;
+  height: 48px; padding: 0 14px;
+  border: 1px solid var(--ink-300);
+  border-radius: var(--r-sm);
+  font: inherit; color: var(--ink-900);
+  background: white;
+  transition: border-color .15s, box-shadow .15s;
+}
+.dr-input:focus {
+  outline: none;
+  border-color: var(--droppii-blue-600);
+  box-shadow: 0 0 0 4px rgba(15, 76, 156, .12);
+}
+
+/* Chip / tag */
+.dr-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 26px; padding: 0 10px;
+  border-radius: var(--r-pill);
+  font-size: 12px; font-weight: 600;
+  background: var(--ink-100); color: var(--ink-700);
+}
+.dr-chip-blue { background: var(--droppii-blue-100); color: var(--droppii-blue-700); }
+.dr-chip-orange { background: var(--droppii-orange-100); color: var(--droppii-orange-700); }
+.dr-chip-success { background: var(--success-100); color: var(--success-700); }
+.dr-chip-warn { background: #fff4cc; color: #8a5800; }
+
+/* Card */
+.dr-card {
+  background: white;
+  border: 1px solid var(--ink-200);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-1);
+}
