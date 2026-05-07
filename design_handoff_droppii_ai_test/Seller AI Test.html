@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Droppii — Bài kiểm tra Kiến thức AI cho Nhà bán hàng</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="brand.css">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #f0eee9; font-family: 'Be Vietnam Pro', system-ui, sans-serif; }
+  #root { height: 100vh; }
+  /* artboards: fixed exact size; inner app fills it. */
+  .ab-frame { width: 100%; height: 100%; overflow: hidden; border-radius: 14px; background: white; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script src="quiz-data.js"></script>
+  <script src="droppii-sync.js"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="direction-a-login.jsx"></script>
+  <script type="text/babel" src="direction-a-test.jsx"></script>
+  <script type="text/babel" src="direction-a-result.jsx"></script>
+  <script type="text/babel" src="direction-b-login.jsx"></script>
+  <script type="text/babel" src="direction-b-test.jsx"></script>
+  <script type="text/babel" src="direction-b-result.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "primaryBlue": "#0f4c9c",
+      "accentOrange": "#ee5a22",
+      "uiDensity": "Comfortable",
+      "showCertificateBg": true
+    }/*EDITMODE-END*/;
+
+    function App() {
+      const [tweaks, setTweak, panelOpen, setPanelOpen] = useTweaks(TWEAK_DEFAULTS);
+
+      // Live-apply color tweaks
+      React.useEffect(() => {
+        const r = document.documentElement;
+        r.style.setProperty('--droppii-blue-700', tweaks.primaryBlue);
+        r.style.setProperty('--droppii-orange-600', tweaks.accentOrange);
+      }, [tweaks.primaryBlue, tweaks.accentOrange]);
+
+      // Desktop dimensions for prototype frames (real, comfortable size)
+      const W = 1180, H = 760;
+      const M_W = 390, M_H = 760; // mobile sizing
+
+      return (
+        <>
+          <DesignCanvas>
+            <DCSection id="dirA" title="A · Cẩn trọng & Chuyên nghiệp" subtitle="Phong cách 'kỳ thi chứng chỉ' — sạch, tập trung, một accent màu xanh Droppii.">
+              <DCArtboard id="a-login" label="01 · Đăng nhập (desktop)" width={W} height={H}>
+                <div className="ab-frame"><DirA_Login/></div>
+              </DCArtboard>
+              <DCArtboard id="a-test" label="02 · Đang làm bài (desktop)" width={W} height={H}>
+                <div className="ab-frame"><DirA_Test/></div>
+              </DCArtboard>
+              <DCArtboard id="a-result" label="03 · Kết quả & Chứng nhận" width={W} height={H}>
+                <div className="ab-frame"><DirA_Result/></div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="dirB" title="B · Ấm áp & Đồng hành" subtitle="Phong cách 'người bạn huấn luyện' — accent cam Droppii, ngôn ngữ động viên, chi tiết minh hoạ nhẹ.">
+              <DCArtboard id="b-login" label="01 · Đăng nhập (desktop)" width={W} height={H}>
+                <div className="ab-frame"><DirB_Login/></div>
+              </DCArtboard>
+              <DCArtboard id="b-test" label="02 · Đang làm bài (desktop)" width={W} height={H}>
+                <div className="ab-frame"><DirB_Test/></div>
+              </DCArtboard>
+              <DCArtboard id="b-result" label="03 · Kết quả & Chứng nhận" width={W} height={H}>
+                <div className="ab-frame"><DirB_Result/></div>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="mobile" title="Mobile preview" subtitle="Cùng câu hỏi #7, hai hướng song song trên màn hình điện thoại.">
+              <DCArtboard id="m-a-test" label="A · iPhone — đang làm bài" width={M_W} height={M_H}>
+                <div className="ab-frame" style={{transform:'scale(.92)', transformOrigin:'top left', width: M_W/.92, height: M_H/.92}}>
+                  <DirA_Test/>
+                </div>
+              </DCArtboard>
+              <DCArtboard id="m-b-test" label="B · iPhone — đang làm bài" width={M_W} height={M_H}>
+                <div className="ab-frame" style={{transform:'scale(.92)', transformOrigin:'top left', width: M_W/.92, height: M_H/.92}}>
+                  <DirB_Test/>
+                </div>
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel open={panelOpen} onClose={() => setPanelOpen(false)} title="Tweaks">
+            <TweakSection title="Brand colors">
+              <TweakColor label="Primary blue (Direction A)" value={tweaks.primaryBlue} onChange={v => setTweak('primaryBlue', v)}/>
+              <TweakColor label="Accent orange (Direction B)" value={tweaks.accentOrange} onChange={v => setTweak('accentOrange', v)}/>
+            </TweakSection>
+            <TweakSection title="Layout">
+              <TweakRadio label="UI density" value={tweaks.uiDensity} options={['Compact','Comfortable','Spacious']} onChange={v => setTweak('uiDensity', v)}/>
+            </TweakSection>
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
