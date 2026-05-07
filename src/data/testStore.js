@@ -91,6 +91,20 @@ export function getAllPublishedTests() {
   return Object.values(getAllRaw()).filter(isTestAvailable);
 }
 
+// Returns tests that are available AND assigned to the given userId (seller name).
+// assignedUsers === 'all' or undefined → visible to everyone.
+// assignedUsers is a string[] → visible only if userId matches one entry (case-insensitive).
+// Treats missing assignedUsers (older exports) as 'all' for backward compatibility.
+export function getTestsForUser(userId) {
+  const uid = (userId || '').trim().toLowerCase();
+  return getAllPublishedTests().filter((test) => {
+    const au = test.assignedUsers;
+    if (!au || au === 'all') return true;
+    if (!Array.isArray(au) || au.length === 0) return false;
+    return au.some((u) => u.trim().toLowerCase() === uid);
+  });
+}
+
 export function getTestById(testId) {
   return getAllRaw()[testId] || null;
 }

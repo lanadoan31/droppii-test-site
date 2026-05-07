@@ -236,7 +236,19 @@ function SettingsRail({
   randomizeOptions, setRandomizeOptions,
   showCorrectAnswers, setShowCorrectAnswers,
   requireWebcam, setRequireWebcam,
+  assignedUsers, setAssignedUsers,
 }) {
+  // Local raw text state so the textarea doesn't reset cursor while the user types
+  const [rawAssigned, setRawAssigned] = useState(() =>
+    Array.isArray(assignedUsers) ? assignedUsers.join(', ') : ''
+  );
+
+  function handleAssignedTextChange(e) {
+    const raw = e.target.value;
+    setRawAssigned(raw);
+    const parsed = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    setAssignedUsers(parsed);
+  }
   const isWindow = availability.type === 'window';
   const scoreNum = Number(passingScore);
   const scoreInvalid = isNaN(scoreNum) || scoreNum < 1 || scoreNum > 100;
@@ -425,6 +437,49 @@ function SettingsRail({
           <input type="checkbox" checked={requireWebcam} onChange={(e) => setRequireWebcam(e.target.checked)} />
           <span>Require webcam during test</span>
         </label>
+      </div>
+
+      <div className="rail-divider" />
+
+      <div className="rail-section">
+        <div className="rail-section-title">Assignment</div>
+
+        <label className="check-row" style={{ marginBottom: 10 }}>
+          <input
+            type="checkbox"
+            checked={assignedUsers === 'all'}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setAssignedUsers('all');
+                setRawAssigned('');
+              } else {
+                setAssignedUsers([]);
+              }
+            }}
+          />
+          <span>Assign to all users</span>
+        </label>
+
+        {assignedUsers !== 'all' && (
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label className="field-label">
+              User names{' '}
+              <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>(comma-separated)</span>
+            </label>
+            <textarea
+              className={`textarea${assignedUsers !== 'all' && Array.isArray(assignedUsers) && assignedUsers.length === 0 ? ' input-error' : ''}`}
+              placeholder="e.g. Nguyen Van A, Tran Thi B"
+              value={rawAssigned}
+              onChange={handleAssignedTextChange}
+              style={{ minHeight: 64 }}
+            />
+            <div className="field-help">
+              {Array.isArray(assignedUsers) && assignedUsers.length > 0
+                ? `${assignedUsers.length} user${assignedUsers.length !== 1 ? 's' : ''} assigned.`
+                : 'Enter at least one name to publish.'}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -651,6 +706,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   const [randomizeOptions,   setRandomizeOptions]   = useState(() => { const d = getDraft(testId); return (d ?? test)?.randomizeOptions ?? true; });
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(() => { const d = getDraft(testId); return (d ?? test)?.showCorrectAnswers ?? true; });
   const [requireWebcam,      setRequireWebcam]      = useState(() => { const d = getDraft(testId); return (d ?? test)?.requireWebcam ?? false; });
+  const [assignedUsers,      setAssignedUsers]      = useState(() => { const d = getDraft(testId); return (d ?? test)?.assignedUsers ?? 'all'; });
   const [modal,              setModal]              = useState(null);
 
   // Persist draft on navigation away. Ref always holds latest state — safe in cleanup.
@@ -658,7 +714,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   draftRef.current = {
     testId, questions, activeId, title, category, duration, passingScore,
     maxAttempts, availability, randomizeQuestions, randomizeOptions,
-    showCorrectAnswers, requireWebcam,
+    showCorrectAnswers, requireWebcam, assignedUsers,
   };
   useEffect(() => {
     return () => { if (draftRef.current) saveDraft(draftRef.current.testId, draftRef.current); };
@@ -712,11 +768,11 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
 
   function save(newStatus) {
     if (newStatus === 'published') {
-      const errors = validateForPublish(questions, passingScore);
+      const errors = validateForPublish(questions, passingScore, assignedUsers);
       if (errors.length > 0) { showToast(errors[0]); return; }
     }
     if (newStatus === 'scheduled') {
-      const errors = validateForPublish(questions, passingScore);
+      const errors = validateForPublish(questions, passingScore, assignedUsers);
       if (errors.length > 0) { showToast(errors[0]); return; }
       if (availability.type !== 'window' || !availability.opens || !availability.closes) {
         showToast('Set opens and closes times in Availability before scheduling.');
@@ -742,6 +798,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
       randomizeOptions,
       showCorrectAnswers,
       requireWebcam,
+      assignedUsers,
       questions:    questions.length,
       questionsList: questions,
       updatedAt:    'just now',
@@ -940,6 +997,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
           randomizeOptions={randomizeOptions}     setRandomizeOptions={setRandomizeOptions}
           showCorrectAnswers={showCorrectAnswers} setShowCorrectAnswers={setShowCorrectAnswers}
           requireWebcam={requireWebcam}           setRequireWebcam={setRequireWebcam}
+          assignedUsers={assignedUsers}           setAssignedUsers={setAssignedUsers}
         />
       </div>
 

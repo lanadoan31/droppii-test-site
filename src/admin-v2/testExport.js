@@ -42,7 +42,8 @@ export function validateQuestion(q) {
 
 // ── Test-level validation ──────────────────────────────────────────────────────
 // Returns an array of human-readable error strings; empty = publishable.
-export function validateForPublish(questions, passingScore) {
+// assignedUsers: 'all' | string[] — optional, omitting treats as 'all'.
+export function validateForPublish(questions, passingScore, assignedUsers) {
   const errors = [];
 
   if (!questions || questions.length === 0) {
@@ -60,6 +61,12 @@ export function validateForPublish(questions, passingScore) {
     errors.push(
       `${badQs.length} question${badQs.length !== 1 ? 's' : ''} need${badQs.length === 1 ? 's' : ''} to be fixed (missing text or correct answer).`
     );
+  }
+
+  if (assignedUsers !== undefined && assignedUsers !== 'all') {
+    if (!Array.isArray(assignedUsers) || assignedUsers.length === 0) {
+      errors.push('Assign this test to at least one user, or set it to "All users".');
+    }
   }
 
   return errors;
@@ -111,7 +118,8 @@ export function exportTest(test) {
     duration:     test.duration,
     passingScore: test.passingScore,
     maxAttempts:  test.maxAttempts,
-    availability: normalizeAvailability(test.availability),
+    availability:  normalizeAvailability(test.availability),
+    assignedUsers: test.assignedUsers ?? 'all',
     config: {
       randomizeQuestions: test.randomizeQuestions,
       randomizeOptions:   test.randomizeOptions,

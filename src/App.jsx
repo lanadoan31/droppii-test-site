@@ -5,7 +5,7 @@ import Test from "./components/Test";
 import Result from "./components/Result";
 import Certificate from "./components/Certificate";
 import { TEST_META, QUESTIONS } from "./data/questions";
-import { getAllPublishedTests, adaptForSeller } from "./data/testStore";
+import { getTestsForUser, adaptForSeller } from "./data/testStore";
 import { saveTestResult } from "./data/resultStore";
 import TestSelect from "./components/TestSelect";
 
@@ -25,10 +25,18 @@ const DEFAULT_TWEAKS = {
 };
 
 export default function App() {
+  // Seller identity — name entered at entry screen, used as userId for assignment filtering.
+  // Persisted in sessionStorage so it survives a page reload within the session.
+  const [sellerUserId, setSellerUserId] = useState(
+    () => sessionStorage.getItem('droppii_seller_userId') || ''
+  );
+
   // selectedTest holds the adapted { questions, testMeta } for the active test.
   // Initialized with hardcoded fallback so Tweaks panel jump-to-screen always works.
   const [selectedTest, setSelectedTest] = useState({ questions: QUESTIONS, testMeta: TEST_META });
-  const [allTests,     setAllTests]     = useState(() => getAllPublishedTests());
+  const [allTests,     setAllTests]     = useState(() => getTestsForUser(
+    sessionStorage.getItem('droppii_seller_userId') || ''
+  ));
 
   const [tweaks, setTweaksState] = useState(DEFAULT_TWEAKS);
   const [stage, setStage] = useState("entry"); // entry | select | pretest | test | result | cert
@@ -63,7 +71,10 @@ export default function App() {
 
   const handleSellerContinue = (sellerInfo) => {
     setSeller(sellerInfo);
-    setAllTests(getAllPublishedTests()); // refresh in case new tests were published
+    const userId = sellerInfo.name.trim(); // seller name is the userId for assignment matching
+    sessionStorage.setItem('droppii_seller_userId', userId);
+    setSellerUserId(userId);
+    setAllTests(getTestsForUser(userId)); // refresh with assignment filter
     setStage("select");
   };
 
@@ -101,7 +112,7 @@ export default function App() {
       testId:         testMeta.id || "demo",
       testTitle:      testMeta.title,
       userName:       seller?.name || "Nhà bán hàng",
-      userId:         seller?.id   || "DRP-SLR-00000",
+      userId:         sellerUserId || seller?.id || "DRP-SLR-00000",
       score,
       passed:         score >= testMeta.passingScore,
       correctCount:   correct,
