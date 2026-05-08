@@ -222,12 +222,12 @@ export default function QuestionBank({ showToast }) {
         const saved = await createQuestion(formData);
         setQuestions((prev) => [saved, ...prev]);
         setFormKey((k) => k + 1);
-        showToast('Question created successfully');
+        showToast('New question added');
       } else {
         const saved = await updateQuestion(selected.id, formData);
         setQuestions((prev) => prev.map((q) => q.id === selected.id ? saved : q));
         setSelected(saved);
-        showToast('Changes saved');
+        showToast('Question updated');
       }
     } catch {
       showToast('Error saving — check console');
