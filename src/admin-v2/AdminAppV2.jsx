@@ -92,11 +92,16 @@ export default function AdminAppV2() {
       passRate:           0,
       updatedAt:          'just now',
     };
-    setTests((prev) => [newTest, ...prev]); // optimistic
     setModal(null);
+    try {
+      await saveTest(newTest);
+    } catch (err) {
+      showToast('Error saving to Supabase — check console');
+      return;
+    }
+    setTests((prev) => [newTest, ...prev]);
     showToast('Draft test created');
     navigate('builder', id);
-    await saveTest(newTest); // persist to Supabase
   }
 
   const activeNav = section.split('/')[0] || 'tests';

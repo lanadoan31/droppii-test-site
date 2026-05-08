@@ -816,8 +816,12 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
     const updatedTest = { ...test, ...patch };
     setTests((prev) => prev.map((t) => (t.id === testId ? updatedTest : t)));
 
-    console.log('[Supabase] saving test:', testId, 'status:', updatedTest.status);
-    await saveTest(updatedTest);
+    try {
+      await saveTest(updatedTest);
+    } catch (err) {
+      showToast('Error saving to Supabase — check console');
+      return;
+    }
 
     const TOAST = {
       published: 'Test published',

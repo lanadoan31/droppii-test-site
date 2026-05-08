@@ -122,10 +122,17 @@ export default function TestList({ tests, setTests, navigate, openModal, showToa
     const t = tests.find((x) => x.id === id);
     const newStatus = t?.status === 'published' ? 'draft' : 'published';
     const updated = { ...t, status: newStatus, updatedAt: 'just now' };
+    setMenuId(null);
+    try {
+      await saveTest(updated);
+      console.log('[Supabase] saving test:', id, 'status:', newStatus);
+      if (newStatus === 'published') console.log('[Supabase] published to Supabase:', id);
+    } catch (err) {
+      showToast('Error saving to Supabase — check console');
+      return;
+    }
     setTests((prev) => prev.map((x) => (x.id === id ? updated : x)));
     showToast(newStatus === 'published' ? 'Test published' : 'Test unpublished');
-    setMenuId(null);
-    await saveTest(updated);
   }
 
   async function duplicate(id) {
@@ -138,19 +145,31 @@ export default function TestList({ tests, setTests, navigate, openModal, showToa
       attempts: 0, avgScore: 0, passRate: 0,
       updatedAt: 'just now',
     };
+    setMenuId(null);
+    try {
+      await saveTest(copy);
+      console.log('[Supabase] saving test:', copy.id, 'status: draft');
+    } catch (err) {
+      showToast('Error saving to Supabase — check console');
+      return;
+    }
     setTests((prev) => [copy, ...prev]);
     showToast('Test duplicated');
-    setMenuId(null);
-    await saveTest(copy);
   }
 
   async function archive(id) {
     const t = tests.find((x) => x.id === id);
     const updated = { ...t, status: 'archived', updatedAt: 'just now' };
+    setMenuId(null);
+    try {
+      await saveTest(updated);
+      console.log('[Supabase] saving test:', id, 'status: archived');
+    } catch (err) {
+      showToast('Error saving to Supabase — check console');
+      return;
+    }
     setTests((prev) => prev.map((x) => (x.id === id ? updated : x)));
     showToast('Test archived');
-    setMenuId(null);
-    await saveTest(updated);
   }
 
   return (
