@@ -4,7 +4,7 @@ import PreTest from "./components/PreTest";
 import Test from "./components/Test";
 import Result from "./components/Result";
 import Certificate from "./components/Certificate";
-import { getTestsForUser, adaptForSeller, getLatestPublishedTest } from "./data/testStore";
+import { getTestsForUser, adaptForSeller, getLatestPublishedTest, getAllPublishedTests } from "./data/testStore";
 import { saveTestResult } from "./data/resultStore";
 import TestSelect from "./components/TestSelect";
 
@@ -33,9 +33,12 @@ export default function App() {
   // selectedTest holds the adapted { questions, testMeta } for the active test.
   // Initialized from the latest published admin test; null if none exists yet.
   const [selectedTest, setSelectedTest] = useState(() => {
-    const t = getLatestPublishedTest();
-    if (t) console.log('[Seller] Initial test loaded from admin:', t.id, t.title);
-    else    console.log('[Seller] No published admin test found — selectedTest is null');
+    console.log('[Seller] Raw storage:', localStorage.getItem('droppii_tests'));
+    const all = getAllPublishedTests();
+    console.log('[Seller] Parsed tests:', all);
+    const t = all.length > 0 ? all[0] : null;
+    if (t) console.log('[Seller] Initial test loaded:', t.id, t.title, 'status:', t.status);
+    else    console.log('[Seller] No published test found in localStorage');
     return t ? adaptForSeller(t) : null;
   });
   const [allTests, setAllTests] = useState(() => {

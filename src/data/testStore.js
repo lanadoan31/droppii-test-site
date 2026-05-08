@@ -1,13 +1,13 @@
-// sessionStorage-backed store for published tests (keyed by test ID).
-// Bridges admin-v2 export format → seller flow format.
+// localStorage-backed store for published tests (keyed by test ID).
+// Shared across tabs — admin publishes, seller sees it on next read.
 
-const STORE_KEY = 'droppii_published_tests';
+const STORE_KEY = 'droppii_tests';
 
 const LETTER_IDS = ['a', 'b', 'c', 'd', 'e', 'f'];
 
 function getAllRaw() {
   try {
-    const raw = sessionStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(STORE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -66,9 +66,10 @@ export function publishTest(exportedTest) {
   try {
     const all = getAllRaw();
     all[exportedTest.id] = exportedTest;
-    sessionStorage.setItem(STORE_KEY, JSON.stringify(all));
+    localStorage.setItem(STORE_KEY, JSON.stringify(all));
+    console.log('[Store] publishTest → saved id:', exportedTest.id, 'status:', exportedTest.status, 'questions:', exportedTest.questions?.length);
   } catch {
-    // sessionStorage unavailable
+    // localStorage unavailable
   }
 }
 
