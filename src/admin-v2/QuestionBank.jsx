@@ -200,7 +200,6 @@ export default function QuestionBank({ showToast }) {
   const [search,     setSearch]     = useState('');
   const [catFilter,  setCatFilter]  = useState('All');
   const [saving,     setSaving]     = useState(false);
-  const [formKey,    setFormKey]    = useState(0);
 
   useEffect(() => {
     getAllQuestions().then((data) => {
@@ -221,12 +220,12 @@ export default function QuestionBank({ showToast }) {
       if (!selected || selected === 'new') {
         const saved = await createQuestion(formData);
         setQuestions((prev) => [saved, ...prev]);
-        setFormKey((k) => k + 1);
+        setSelected(null);
         showToast('New question added');
       } else {
         const saved = await updateQuestion(selected.id, formData);
         setQuestions((prev) => prev.map((q) => q.id === selected.id ? saved : q));
-        setSelected(saved);
+        setSelected(null);
         showToast('Question updated');
       }
     } catch {
@@ -250,7 +249,7 @@ export default function QuestionBank({ showToast }) {
   }
 
   const editorInitial = selected === 'new' ? blankQuestion() : selected;
-  const editorKey     = selected === 'new' ? `new-${formKey}` : (selected?.id ?? 'none');
+  const editorKey     = selected === 'new' ? 'new' : (selected?.id ?? 'none');
 
   return (
     <div className="content" style={{ animation: 'v2SlideUp .2s ease' }}>
