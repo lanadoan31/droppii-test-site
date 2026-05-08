@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
 import { CATEGORIES, INITIAL_QUESTION_BANK } from './data-v2.js';
 import { getDraft, saveDraft } from './builderDraft.js';
-import { normalizeQuestion, validateQuestion, validateForPublish, exportTest } from './testExport.js';
-import { publishTest } from '../data/testStore.js';
+import { normalizeQuestion, validateQuestion, validateForPublish } from './testExport.js';
+import { saveTest } from '../data/testStore.js';
 
 const TYPE_LABELS = {
   'multiple-choice': 'Multiple choice',
@@ -774,7 +774,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
     if (qs.length > 0) setActiveId(qs[qs.length - 1].id);
   }
 
-  function save(newStatus) {
+  async function save(newStatus) {
     if (newStatus === 'published') {
       const errors = validateForPublish(questions, passingScore, assignedUsers);
       if (errors.length > 0) { showToast(errors[0]); return; }
@@ -796,10 +796,10 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
     const durNum   = Math.max(1, Math.min(180, Number(duration) || 30));
 
     const patch = {
-      title:        title.trim() || test.title,
+      title:              title.trim() || test.title,
       category,
-      duration:     durNum,
-      passingScore: scoreNum,
+      duration:           durNum,
+      passingScore:       scoreNum,
       maxAttempts,
       availability,
       randomizeQuestions,
@@ -807,24 +807,23 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
       showCorrectAnswers,
       requireWebcam,
       assignedUsers,
-      questions:    questions.length,
-      questionsList: questions,
-      updatedAt:    'just now',
+      questions:          questions.length,
+      questionsList:      questions,
+      updatedAt:          'just now',
     };
     if (newStatus) patch.status = newStatus;
 
-    setTests((prev) => prev.map((t) => (t.id === testId ? { ...t, ...patch } : t)));
+    const updatedTest = { ...test, ...patch };
+    setTests((prev) => prev.map((t) => (t.id === testId ? updatedTest : t)));
 
-    // Sync any status change to the store so the seller view stays accurate.
-    if (newStatus) {
-      publishTest(exportTest({ ...test, ...patch }));
-    }
+    console.log('[Supabase] saving test:', testId, 'status:', updatedTest.status);
+    await saveTest(updatedTest);
 
     const TOAST = {
-      published:  'Test published',
-      scheduled:  'Test scheduled',
-      archived:   'Test archived',
-      draft:      'Moved to draft',
+      published: 'Test published',
+      scheduled: 'Test scheduled',
+      archived:  'Test archived',
+      draft:     'Moved to draft',
     };
     showToast(TOAST[newStatus] || 'Draft saved');
   }

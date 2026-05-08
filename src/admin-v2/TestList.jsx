@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
+import { saveTest } from '../data/testStore.js';
 
 function formatWindow(opens, closes) {
   const fmt = (s) => new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
@@ -117,40 +118,39 @@ export default function TestList({ tests, setTests, navigate, openModal, showToa
     return true;
   });
 
-  function togglePublish(id) {
-    setTests((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? { ...t, status: t.status === 'published' ? 'draft' : 'published', updatedAt: 'just now' }
-          : t
-      )
-    );
+  async function togglePublish(id) {
     const t = tests.find((x) => x.id === id);
-    showToast(t?.status === 'published' ? 'Test unpublished' : 'Test published');
+    const newStatus = t?.status === 'published' ? 'draft' : 'published';
+    const updated = { ...t, status: newStatus, updatedAt: 'just now' };
+    setTests((prev) => prev.map((x) => (x.id === id ? updated : x)));
+    showToast(newStatus === 'published' ? 'Test published' : 'Test unpublished');
     setMenuId(null);
+    await saveTest(updated);
   }
 
-  function duplicate(id) {
+  async function duplicate(id) {
     const orig = tests.find((t) => t.id === id);
     const copy = {
       ...orig,
-      id: 't' + Date.now(),
-      title: orig.title + ' (Copy)',
-      status: 'draft',
+      id:       crypto.randomUUID(),
+      title:    orig.title + ' (Copy)',
+      status:   'draft',
       attempts: 0, avgScore: 0, passRate: 0,
       updatedAt: 'just now',
     };
     setTests((prev) => [copy, ...prev]);
     showToast('Test duplicated');
     setMenuId(null);
+    await saveTest(copy);
   }
 
-  function archive(id) {
-    setTests((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: 'archived', updatedAt: 'just now' } : t))
-    );
+  async function archive(id) {
+    const t = tests.find((x) => x.id === id);
+    const updated = { ...t, status: 'archived', updatedAt: 'just now' };
+    setTests((prev) => prev.map((x) => (x.id === id ? updated : x)));
     showToast('Test archived');
     setMenuId(null);
+    await saveTest(updated);
   }
 
   return (

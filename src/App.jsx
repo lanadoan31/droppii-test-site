@@ -4,7 +4,7 @@ import PreTest from "./components/PreTest";
 import Test from "./components/Test";
 import Result from "./components/Result";
 import Certificate from "./components/Certificate";
-import { getTestsForUser, adaptForSeller, getLatestPublishedTest, getAllPublishedTests } from "./data/testStore";
+import { getTestsForUser, adaptForSeller } from "./data/testStore";
 import { saveTestResult } from "./data/resultStore";
 import TestSelect from "./components/TestSelect";
 
@@ -30,23 +30,8 @@ export default function App() {
     () => sessionStorage.getItem('droppii_seller_userId') || ''
   );
 
-  // selectedTest holds the adapted { questions, testMeta } for the active test.
-  // Initialized from the latest published admin test; null if none exists yet.
-  const [selectedTest, setSelectedTest] = useState(() => {
-    console.log('[Seller] Raw storage:', localStorage.getItem('droppii_tests'));
-    const all = getAllPublishedTests();
-    console.log('[Seller] Parsed tests:', all);
-    const t = all.length > 0 ? all[0] : null;
-    if (t) console.log('[Seller] Initial test loaded:', t.id, t.title, 'status:', t.status);
-    else    console.log('[Seller] No published test found in localStorage');
-    return t ? adaptForSeller(t) : null;
-  });
-  const [allTests, setAllTests] = useState(() => {
-    const uid = sessionStorage.getItem('droppii_seller_userId') || '';
-    const tests = getTestsForUser(uid);
-    console.log('[Seller] Initial allTests load:', tests.length, 'test(s) for uid:', uid || '(none)');
-    return tests;
-  });
+  const [selectedTest, setSelectedTest] = useState(null);
+  const [allTests,     setAllTests]     = useState([]);
 
   const [tweaks, setTweaksState] = useState(DEFAULT_TWEAKS);
   const [stage, setStage] = useState("entry"); // entry | select | pretest | test | result | cert
@@ -79,20 +64,21 @@ export default function App() {
     return () => clearInterval(t);
   }, [stage]);
 
-  const handleSellerContinue = (sellerInfo) => {
+  const handleSellerContinue = async (sellerInfo) => {
     setSeller(sellerInfo);
     const userId = sellerInfo.name.trim();
     sessionStorage.setItem('droppii_seller_userId', userId);
     setSellerUserId(userId);
-    const tests = getTestsForUser(userId);
+    console.log('[Supabase] fetching tests for seller:', userId);
+    const tests = await getTestsForUser(userId);
     setAllTests(tests);
     console.log('[Seller] Logged in as:', userId, '→', tests.length, 'available test(s):', tests.map(t => t.id));
     setStage(tests.length === 0 ? "empty" : "select");
   };
 
-  const handleSelectTest = (exportedTest) => {
-    const adapted = adaptForSeller(exportedTest);
-    console.log('[Seller] Test selected — source: admin, id:', exportedTest.id, 'title:', exportedTest.title);
+  const handleSelectTest = (test) => {
+    const adapted = adaptForSeller(test);
+    console.log('[Seller] Test selected:', test.id, test.title);
     setSelectedTest(adapted);
     setTimeLeft(adapted.testMeta.durationMinutes * 60);
     setStage("pretest");

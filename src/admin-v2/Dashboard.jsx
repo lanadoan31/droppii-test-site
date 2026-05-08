@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getAllResults } from '../data/resultStore.js';
 import { getAllStoredTests } from '../data/testStore.js';
 import { getTestMetrics, getUserMetrics, getDashboardSummary } from '../data/analytics.js';
@@ -26,8 +26,9 @@ function RateBar({ pct, pass }) {
 }
 
 export default function Dashboard() {
-  const results     = useMemo(() => getAllResults(), []);
-  const storedTests = useMemo(() => getAllStoredTests(), []);
+  const results = useMemo(() => getAllResults(), []);
+  const [storedTests, setStoredTests] = useState([]);
+  useEffect(() => { getAllStoredTests().then(setStoredTests); }, []);
   const testMetrics = useMemo(() => getTestMetrics(results), [results]);
   const userMetrics = useMemo(() => getUserMetrics(results), [results]);
   const summary     = useMemo(

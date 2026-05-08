@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import './admin-v2.css';
-import { INITIAL_TESTS, MOCK_USER, makeWindow, makeAlways } from './data-v2.js';
+import { MOCK_USER, makeWindow, makeAlways } from './data-v2.js';
 import Sidebar from './Sidebar.jsx';
 import Topbar from './Topbar.jsx';
 import TestList from './TestList.jsx';
@@ -10,6 +10,7 @@ import Results from './Results.jsx';
 import Dashboard from './Dashboard.jsx';
 import TestDetail from './TestDetail.jsx';
 import TakerResult from './TakerResult.jsx';
+import { getAllTests, saveTest } from '../data/testStore.js';
 
 function pathToSection(pathname) {
   const seg = pathname.replace(/^\/admin-v2\/?/, '').split('/')[0];
@@ -31,7 +32,7 @@ export default function AdminAppV2() {
   const [section,   setSection]   = useState(() => pathToSection(window.location.pathname));
   const [contextId, setContextId] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
-  const [tests,     setTests]     = useState(INITIAL_TESTS);
+  const [tests,     setTests]     = useState([]);
   const [modal,     setModal]     = useState(null);
   const [toast,     setToast]     = useState(null);
 
@@ -50,6 +51,11 @@ export default function AdminAppV2() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // Load all tests from Supabase on mount
+  useEffect(() => {
+    getAllTests().then(setTests);
+  }, []);
+
   function navigate(page, id = null) {
     setSection(page);
     setContextId(id);
@@ -61,35 +67,36 @@ export default function AdminAppV2() {
     setTimeout(() => setToast(null), 2500);
   }
 
-  function handleCreateTest(data) {
-    const id = 't' + Date.now();
+  async function handleCreateTest(data) {
+    const id = crypto.randomUUID();
     const newTest = {
       id,
-      title:         data.title,
-      category:      data.category,
-      description:   data.description || '',
-      status:        'draft',
-      questions:     0,
-      questionsList: [],
-      duration:      Number(data.duration) || 30,
-      passingScore:  Number(data.passingScore) || 70,
-      maxAttempts:   'unlimited',
-      availability:  data.availability === 'window'
+      title:              data.title,
+      category:           data.category,
+      description:        data.description || '',
+      status:             'draft',
+      questions:          0,
+      questionsList:      [],
+      duration:           Number(data.duration) || 30,
+      passingScore:       Number(data.passingScore) || 70,
+      maxAttempts:        'unlimited',
+      availability:       data.availability === 'window'
         ? makeWindow(data.opens, data.closes)
         : makeAlways(),
       randomizeQuestions: true,
       randomizeOptions:   true,
       showCorrectAnswers: true,
       requireWebcam:      false,
-      attempts:  0,
-      avgScore:  0,
-      passRate:  0,
-      updatedAt: 'just now',
+      attempts:           0,
+      avgScore:           0,
+      passRate:           0,
+      updatedAt:          'just now',
     };
-    setTests((prev) => [newTest, ...prev]);
+    setTests((prev) => [newTest, ...prev]); // optimistic
     setModal(null);
     showToast('Draft test created');
     navigate('builder', id);
+    await saveTest(newTest); // persist to Supabase
   }
 
   const activeNav = section.split('/')[0] || 'tests';
