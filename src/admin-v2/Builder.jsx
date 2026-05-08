@@ -775,6 +775,12 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   }
 
   async function save(newStatus) {
+    if (newStatus === 'published' || newStatus === 'scheduled') {
+      if (!questions || questions.length === 0) {
+        showToast('You must add at least 1 question before publishing');
+        return;
+      }
+    }
     if (newStatus === 'published') {
       const errors = validateForPublish(questions, passingScore, assignedUsers);
       if (errors.length > 0) { showToast(errors[0]); return; }
