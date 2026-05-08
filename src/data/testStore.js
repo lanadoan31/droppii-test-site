@@ -109,11 +109,12 @@ export async function getAllTests() {
 
 // Insert (new) or update (existing) a test.
 export async function saveTest(test) {
+  console.log('Saving test:', test);
   console.log('[Supabase] saving test:', test.id, 'status:', test.status);
   if (test.status === 'published') {
     console.log('[Supabase] published to Supabase:', test.id);
   }
-  const row = testToRow(test);
+  const row = { ...testToRow(test), questions: test.questionsList || [] };
   const { data, error } = await supabase
     .from('tests')
     .upsert(row, { onConflict: 'id' })
