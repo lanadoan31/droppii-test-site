@@ -95,7 +95,7 @@ function QuestionForm({ initial, onSave, onDelete, onCancel, showToast, saving }
           )}
           <button className="btn btn-ghost btn-sm" onClick={onCancel}>Cancel</button>
           <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving…' : isNew ? 'Create Question' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -200,6 +200,7 @@ export default function QuestionBank({ showToast }) {
   const [search,     setSearch]     = useState('');
   const [catFilter,  setCatFilter]  = useState('All');
   const [saving,     setSaving]     = useState(false);
+  const [formKey,    setFormKey]    = useState(0);
 
   useEffect(() => {
     getAllQuestions().then((data) => {
@@ -220,13 +221,13 @@ export default function QuestionBank({ showToast }) {
       if (!selected || selected === 'new') {
         const saved = await createQuestion(formData);
         setQuestions((prev) => [saved, ...prev]);
-        setSelected(saved);
-        showToast('Question created');
+        setFormKey((k) => k + 1);
+        showToast('Question created successfully');
       } else {
         const saved = await updateQuestion(selected.id, formData);
         setQuestions((prev) => prev.map((q) => q.id === selected.id ? saved : q));
         setSelected(saved);
-        showToast('Question saved');
+        showToast('Changes saved');
       }
     } catch {
       showToast('Error saving — check console');
@@ -249,7 +250,7 @@ export default function QuestionBank({ showToast }) {
   }
 
   const editorInitial = selected === 'new' ? blankQuestion() : selected;
-  const editorKey     = selected === 'new' ? 'new' : (selected?.id ?? 'none');
+  const editorKey     = selected === 'new' ? `new-${formKey}` : (selected?.id ?? 'none');
 
   return (
     <div className="content" style={{ animation: 'v2SlideUp .2s ease' }}>
