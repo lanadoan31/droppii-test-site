@@ -8,6 +8,8 @@ import CreateTestModal from './CreateTestModal.jsx';
 import Builder from './Builder.jsx';
 import Results from './Results.jsx';
 import Dashboard from './Dashboard.jsx';
+import TestDetail from './TestDetail.jsx';
+import TakerResult from './TakerResult.jsx';
 
 function pathToSection(pathname) {
   const seg = pathname.replace(/^\/admin-v2\/?/, '').split('/')[0];
@@ -108,6 +110,7 @@ export default function AdminAppV2() {
       case 'builder':
         return (
           <Builder
+            key={contextId}
             tests={tests}
             setTests={setTests}
             testId={contextId}
@@ -116,9 +119,19 @@ export default function AdminAppV2() {
           />
         );
       case 'testDetail':
-        return <ComingSoon label="Test detail" />;
+        return (
+          <TestDetail
+            tests={tests}
+            setTests={setTests}
+            testId={contextId}
+            navigate={navigate}
+            showToast={showToast}
+          />
+        );
       case 'results':
-        return <Results />;
+        return <Results navigate={navigate} />;
+      case 'takerResult':
+        return <TakerResult resultId={contextId} navigate={navigate} />;
       case 'dashboard':
         return <Dashboard />;
       default:

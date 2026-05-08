@@ -721,8 +721,16 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   }, []); // intentionally empty — cleanup runs on unmount only
 
   if (!test) {
-    navigate('tests');
-    return null;
+    return (
+      <div className="content">
+        <div className="coming-soon">Test not found</div>
+        <div style={{ textAlign: 'center', marginTop: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('tests')}>
+            ← Back to tests
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const activeQ   = questions.find((q) => q.id === activeId);

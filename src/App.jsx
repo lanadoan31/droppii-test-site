@@ -4,8 +4,7 @@ import PreTest from "./components/PreTest";
 import Test from "./components/Test";
 import Result from "./components/Result";
 import Certificate from "./components/Certificate";
-import { TEST_META, QUESTIONS } from "./data/questions";
-import { getTestsForUser, adaptForSeller } from "./data/testStore";
+import { getTestsForUser, adaptForSeller, getLatestPublishedTest } from "./data/testStore";
 import { saveTestResult } from "./data/resultStore";
 import TestSelect from "./components/TestSelect";
 
@@ -32,20 +31,28 @@ export default function App() {
   );
 
   // selectedTest holds the adapted { questions, testMeta } for the active test.
-  // Initialized with hardcoded fallback so Tweaks panel jump-to-screen always works.
-  const [selectedTest, setSelectedTest] = useState({ questions: QUESTIONS, testMeta: TEST_META });
-  const [allTests,     setAllTests]     = useState(() => getTestsForUser(
-    sessionStorage.getItem('droppii_seller_userId') || ''
-  ));
+  // Initialized from the latest published admin test; null if none exists yet.
+  const [selectedTest, setSelectedTest] = useState(() => {
+    const t = getLatestPublishedTest();
+    if (t) console.log('[Seller] Initial test loaded from admin:', t.id, t.title);
+    else    console.log('[Seller] No published admin test found — selectedTest is null');
+    return t ? adaptForSeller(t) : null;
+  });
+  const [allTests, setAllTests] = useState(() => {
+    const uid = sessionStorage.getItem('droppii_seller_userId') || '';
+    const tests = getTestsForUser(uid);
+    console.log('[Seller] Initial allTests load:', tests.length, 'test(s) for uid:', uid || '(none)');
+    return tests;
+  });
 
   const [tweaks, setTweaksState] = useState(DEFAULT_TWEAKS);
   const [stage, setStage] = useState("entry"); // entry | select | pretest | test | result | cert
   const [seller, setSeller] = useState(null);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(TEST_META.durationMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(30 * 60); // overwritten when a test is selected
 
-  const { questions, testMeta } = selectedTest;
+  const { questions = [], testMeta = {} } = selectedTest ?? {};
 
   const setTweak = (keyOrEdits, val) => {
     setTweaksState((prev) => {
@@ -71,15 +78,18 @@ export default function App() {
 
   const handleSellerContinue = (sellerInfo) => {
     setSeller(sellerInfo);
-    const userId = sellerInfo.name.trim(); // seller name is the userId for assignment matching
+    const userId = sellerInfo.name.trim();
     sessionStorage.setItem('droppii_seller_userId', userId);
     setSellerUserId(userId);
-    setAllTests(getTestsForUser(userId)); // refresh with assignment filter
-    setStage("select");
+    const tests = getTestsForUser(userId);
+    setAllTests(tests);
+    console.log('[Seller] Logged in as:', userId, '→', tests.length, 'available test(s):', tests.map(t => t.id));
+    setStage(tests.length === 0 ? "empty" : "select");
   };
 
   const handleSelectTest = (exportedTest) => {
     const adapted = adaptForSeller(exportedTest);
+    console.log('[Seller] Test selected — source: admin, id:', exportedTest.id, 'title:', exportedTest.title);
     setSelectedTest(adapted);
     setTimeLeft(adapted.testMeta.durationMinutes * 60);
     setStage("pretest");
@@ -108,17 +118,21 @@ export default function App() {
       }
     });
     const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
-    saveTestResult({
-      testId:         testMeta.id || "demo",
+    const resultPayload = {
+      testId:         testMeta.id,
       testTitle:      testMeta.title,
       userName:       seller?.name || "Nhà bán hàng",
       userId:         sellerUserId || seller?.id || "DRP-SLR-00000",
       score,
-      passed:         score >= testMeta.passingScore,
+      passed:         score >= (testMeta.passingScore ?? 70),
       correctCount:   correct,
       totalQuestions: questions.length,
       submittedAt:    new Date().toISOString(),
-    });
+      answers,
+      questions,
+    };
+    console.log('[Seller] Submitting result → testId:', resultPayload.testId, 'userId:', resultPayload.userId, 'score:', score);
+    saveTestResult(resultPayload);
     setStage("result");
   };
 
@@ -139,13 +153,19 @@ export default function App() {
       {stage === "entry" && (
         <SellerEntry tweaks={tweaks} onContinue={handleSellerContinue} />
       )}
+      {stage === "empty" && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", gap: 12, fontFamily: "inherit" }}>
+          <p style={{ color: "#666", fontSize: 15, margin: 0 }}>No test available. Please contact admin.</p>
+          <button onClick={() => setStage("entry")} style={{ fontSize: 13, color: "#888", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>← Back</button>
+        </div>
+      )}
       {stage === "select" && (
         <TestSelect tweaks={tweaks} seller={demoSeller} tests={allTests} onSelect={handleSelectTest} />
       )}
-      {stage === "pretest" && (
+      {stage === "pretest" && selectedTest && (
         <PreTest tweaks={tweaks} seller={demoSeller} testMeta={testMeta} onStart={handleStart} />
       )}
-      {stage === "test" && (
+      {stage === "test" && selectedTest && (
         <Test
           tweaks={tweaks}
           seller={demoSeller}

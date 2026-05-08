@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getAllResults } from '../data/resultStore.js';
 
-export default function Results() {
+export default function Results({ navigate }) {
   const [results,    setResults]    = useState([]);
   const [filterTest, setFilterTest] = useState('');
   const [filterUser, setFilterUser] = useState('');
@@ -114,11 +114,14 @@ export default function Results() {
             </thead>
             <tbody>
               {filtered.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id}
+                  onClick={() => navigate?.('takerResult', r.id)}
+                  style={{ cursor: navigate ? 'pointer' : undefined }}
+                >
                   <td>{r.testTitle || r.testId}</td>
                   <td>
                     <div>{r.userName}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{r.userId}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{r.userId !== r.userName ? r.userId : ''}</div>
                   </td>
                   <td>
                     <strong>{r.score}%</strong>
@@ -127,7 +130,7 @@ export default function Results() {
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${r.passed ? 'published' : 'archived'}`}>
+                    <span className={`badge ${r.passed ? 'pass' : 'fail'}`}>
                       <span className="badge-dot" />
                       {r.passed ? 'Pass' : 'Fail'}
                     </span>

@@ -1,13 +1,16 @@
 import Icon from './icons.jsx';
 
-export default function Topbar({ title, toggleCollapse }) {
+export default function Topbar({ title, subtitle, toggleCollapse }) {
   return (
     <header className="topbar">
       <button className="icon-btn" onClick={toggleCollapse} title="Toggle sidebar" aria-label="Toggle sidebar">
         <Icon name="list" size={18} />
       </button>
 
-      <div className="topbar-title">{title}</div>
+      <div className="topbar-title">
+        {title}
+        {subtitle && <small>{subtitle}</small>}
+      </div>
 
       <div className="topbar-spacer" />
 

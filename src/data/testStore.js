@@ -113,3 +113,8 @@ export function getAllStoredTests() {
 export function getTestById(testId) {
   return getAllRaw()[testId] || null;
 }
+
+export function getLatestPublishedTest() {
+  const published = getAllPublishedTests();
+  return published.length > 0 ? published[0] : null;
+}

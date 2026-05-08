@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
 
+function formatWindow(opens, closes) {
+  const fmt = (s) => new Date(s).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${fmt(opens)}–${fmt(closes)}`;
+}
+
 const STATUS_LABELS = {
   published: 'Published',
   draft:     'Draft',
@@ -25,7 +30,7 @@ function ProgressBar({ value }) {
   );
 }
 
-function RowMenu({ test, onEdit, onDuplicate, onTogglePublish, onArchive, onClose }) {
+function RowMenu({ test, onEdit, onPreview, onDuplicate, onTogglePublish, onArchive, onClose }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -43,7 +48,7 @@ function RowMenu({ test, onEdit, onDuplicate, onTogglePublish, onArchive, onClos
       <button className="menu-item" onClick={onEdit}>
         <Icon name="edit" size={14} /> Edit
       </button>
-      <button className="menu-item" onClick={() => {}}>
+      <button className="menu-item" onClick={onPreview}>
         <Icon name="eye" size={14} /> Preview
       </button>
       <button className="menu-item" onClick={onDuplicate}>
@@ -247,7 +252,7 @@ export default function TestList({ tests, setTests, navigate, openModal, showToa
                           fontSize: 10.5, fontWeight: 600, color: 'var(--brand-700)',
                           background: 'var(--brand-50)', padding: '2px 6px', borderRadius: 4,
                         }}>
-                          <Icon name="clock" size={10} /> 7:00–8:00 PM
+                          <Icon name="clock" size={10} /> {formatWindow(t.availability.opens, t.availability.closes)}
                         </span>
                       )}
                     </div>
@@ -310,6 +315,7 @@ export default function TestList({ tests, setTests, navigate, openModal, showToa
                       <RowMenu
                         test={t}
                         onEdit={() => { navigate('builder', t.id); setMenuId(null); }}
+                        onPreview={() => { navigate('testDetail', t.id); setMenuId(null); }}
                         onDuplicate={() => duplicate(t.id)}
                         onTogglePublish={() => togglePublish(t.id)}
                         onArchive={() => archive(t.id)}

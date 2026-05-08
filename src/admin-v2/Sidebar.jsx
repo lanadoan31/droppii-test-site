@@ -87,9 +87,10 @@ export default function Sidebar({ collapsed, section, navigate, user, onLogout, 
                 {user.role}
               </span>
             </div>
-            <DropItem icon="user"  label="Profile"      onClick={() => setMenuOpen(false)} />
-            <DropItem icon="users" label="Team members" sub="Soon" disabled />
-            <DropItem icon="bell"  label="Notifications" sub="Soon" disabled />
+            <DropItem icon="user"    label="Profile"       onClick={() => setMenuOpen(false)} />
+            <DropItem icon="users"   label="Team members"  sub="Coming soon" disabled />
+            <DropItem icon="sparkle" label="Branding"       sub="Coming soon" disabled />
+            <DropItem icon="bell"    label="Notifications"  sub="Coming soon" disabled />
             <div className="divider" />
             <DropItem icon="logout" label="Sign out"
               onClick={() => { setMenuOpen(false); onLogout?.(); }} />
