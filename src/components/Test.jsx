@@ -9,11 +9,20 @@ function isAnswered(q, a) {
 }
 
 export default function Test({ tweaks, seller, questions, testMeta, answers, onAnswer, currentIdx, onNav, timeLeft, onSubmit, onAbort }) {
-  const q = questions[currentIdx];
-  const total = questions.length;
   const primary = tweaks.primaryColor;
   const secondary = tweaks.secondaryColor;
 
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="screen" style={{ background: tweaks.bgColor, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: 12 }}>
+        <DroppiiLogo color={primary} />
+        <p style={{ color: '#666', fontSize: 15, margin: '16px 0 0' }}>No questions available. Please contact admin.</p>
+      </div>
+    );
+  }
+
+  const q = questions[currentIdx];
+  const total = questions.length;
   const mins = Math.floor(timeLeft / 60);
   const secs = timeLeft % 60;
   const timeWarning = timeLeft <= 5 * 60;
