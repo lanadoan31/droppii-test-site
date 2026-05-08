@@ -11,6 +11,7 @@ import Dashboard from './Dashboard.jsx';
 import TestDetail from './TestDetail.jsx';
 import TakerResult from './TakerResult.jsx';
 import { getAllTests, saveTest } from '../data/testStore.js';
+import QuestionBank from './QuestionBank.jsx';
 
 function pathToSection(pathname) {
   const seg = pathname.replace(/^\/admin-v2\/?/, '').split('/')[0];
@@ -140,6 +141,8 @@ export default function AdminAppV2() {
             showToast={showToast}
           />
         );
+      case 'bank':
+        return <QuestionBank showToast={showToast} />;
       case 'results':
         return <Results navigate={navigate} />;
       case 'takerResult':

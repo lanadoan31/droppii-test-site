@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
-import { CATEGORIES, INITIAL_QUESTION_BANK } from './data-v2.js';
+import { CATEGORIES } from './data-v2.js';
+import { getAllQuestions } from '../data/questionStore.js';
 import { getDraft, saveDraft } from './builderDraft.js';
 import { normalizeQuestion, validateQuestion, validateForPublish } from './testExport.js';
 import { saveTest } from '../data/testStore.js';
@@ -603,7 +604,21 @@ function PreviewModal({ questions, test, onClose }) {
 
 // ── Bank picker modal ───────────────────────────────────────────────────────────
 function BankPickerModal({ onAdd, onClose }) {
-  const [selected, setSelected] = useState(new Set());
+  const [questions, setQuestions] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [selected,  setSelected]  = useState(new Set());
+  const [search,    setSearch]    = useState('');
+
+  useEffect(() => {
+    getAllQuestions().then((data) => {
+      setQuestions(data);
+      setLoading(false);
+    });
+  }, []);
+
+  const visible = search
+    ? questions.filter((q) => q.text.toLowerCase().includes(search.toLowerCase()))
+    : questions;
 
   function toggle(id) {
     setSelected((prev) => {
@@ -614,12 +629,15 @@ function BankPickerModal({ onAdd, onClose }) {
   }
 
   function handleAdd() {
-    const qs = INITIAL_QUESTION_BANK
-      .filter((b) => selected.has(b.id))
-      .map((b) => {
-        const type = ['fill-blank', 'matching'].includes(b.type) ? 'short-answer' : b.type;
-        return normalizeQuestion({ id: 'bq' + Date.now() + Math.random().toString(36).slice(2, 5), type, text: b.text });
-      });
+    const qs = questions
+      .filter((q) => selected.has(q.id))
+      .map((q) => normalizeQuestion({
+        id:      'bq' + Date.now() + Math.random().toString(36).slice(2, 5),
+        type:    q.type,
+        text:    q.text,
+        options: q.options || [],
+        correct: q.correct || [],
+      }));
     onAdd(qs);
     onClose();
   }
@@ -643,30 +661,47 @@ function BankPickerModal({ onAdd, onClose }) {
         </div>
 
         <div className="modal-body">
-          <div className="bank-list">
-            {INITIAL_QUESTION_BANK.map((q) => (
-              <div
-                key={q.id}
-                className={`bank-item${selected.has(q.id) ? ' selected' : ''}`}
-                onClick={() => toggle(q.id)}
-              >
-                <span className={`opt-correct checkbox${selected.has(q.id) ? ' active' : ''}`} aria-hidden="true">
-                  {selected.has(q.id) && <Icon name="check" size={10} strokeWidth={3} />}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 4 }}>{q.text}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="badge brand" style={{ fontSize: 10.5 }}>{q.category}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{TYPE_LABELS[q.type] || q.type}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{q.difficulty}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>
-                      Used in {q.usedInCount} test{q.usedInCount !== 1 ? 's' : ''}
-                    </span>
+          <div className="search-box" style={{ marginBottom: 12 }}>
+            <Icon name="search" size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
+            <input
+              placeholder="Search questions…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {loading ? (
+            <div style={{ padding: '24px 0', color: 'var(--text-faint)', fontSize: 13, textAlign: 'center' }}>
+              Loading…
+            </div>
+          ) : visible.length === 0 ? (
+            <div style={{ padding: '24px 0', color: 'var(--text-faint)', fontSize: 13, textAlign: 'center' }}>
+              {questions.length === 0
+                ? 'No questions in the bank yet. Add some from the Question Bank page.'
+                : 'No matching questions.'}
+            </div>
+          ) : (
+            <div className="bank-list">
+              {visible.map((q) => (
+                <div
+                  key={q.id}
+                  className={`bank-item${selected.has(q.id) ? ' selected' : ''}`}
+                  onClick={() => toggle(q.id)}
+                >
+                  <span className={`opt-correct checkbox${selected.has(q.id) ? ' active' : ''}`} aria-hidden="true">
+                    {selected.has(q.id) && <Icon name="check" size={10} strokeWidth={3} />}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 500, marginBottom: 4 }}>{q.text}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span className="badge brand" style={{ fontSize: 10.5 }}>{q.category}</span>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{TYPE_LABELS[q.type] || q.type}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">
