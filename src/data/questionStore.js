@@ -1,25 +1,34 @@
 import { supabase } from '../lib/supabaseClient';
+import { canonicalQuestionCategory } from './questionBankCategories.js';
+
+function normalizeDifficultyLevel(v) {
+  const x = String(v ?? 'medium').trim().toLowerCase();
+  if (x === 'easy' || x === 'hard' || x === 'medium') return x;
+  return 'medium';
+}
 
 function rowToQuestion(row) {
   return {
-    id:       row.id,
-    text:     row.content || '',
-    type:     row.type || 'multiple-choice',
-    options:  Array.isArray(row.options) ? row.options : [],
-    correct:  Array.isArray(row.correct_answer) ? row.correct_answer : [],
-    category: row.category || 'General',
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id:               row.id,
+    text:             row.content || '',
+    type:             row.type || 'multiple-choice',
+    options:          Array.isArray(row.options) ? row.options : [],
+    correct:          Array.isArray(row.correct_answer) ? row.correct_answer : [],
+    category:         canonicalQuestionCategory(row.category),
+    difficultyLevel:  normalizeDifficultyLevel(row.difficulty_level),
+    createdAt:        row.created_at,
+    updatedAt:      row.updated_at,
   };
 }
 
 function questionToRow(q) {
   return {
-    content:        q.text || '',
-    type:           q.type || 'multiple-choice',
-    options:        q.type === 'short-answer' ? null : (q.options || []),
-    correct_answer: q.correct || [],
-    category:       q.category || 'General',
+    content:          q.text || '',
+    type:             q.type || 'multiple-choice',
+    options:          q.type === 'short-answer' ? null : (q.options || []),
+    correct_answer:   q.correct || [],
+    category:         canonicalQuestionCategory(q.category),
+    difficulty_level: normalizeDifficultyLevel(q.difficultyLevel),
   };
 }
 
