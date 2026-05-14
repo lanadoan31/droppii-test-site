@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import Icon from './icons.jsx';
-import { CATEGORIES } from './data-v2.js';
+import { DEFAULT_QUESTION_CATEGORY, QUESTION_CATEGORIES } from '../data/questionBankCategories.js';
 
 export default function CreateTestModal({ onClose, onCreate }) {
   const [title,        setTitle]        = useState('');
-  const [category,     setCategory]     = useState('Onboarding');
+  const [category,     setCategory]     = useState(DEFAULT_QUESTION_CATEGORY);
   const [duration,     setDuration]     = useState(30);
   const [passingScore, setPassingScore] = useState(70);
   const [description,  setDescription]  = useState('');
@@ -56,7 +56,7 @@ export default function CreateTestModal({ onClose, onCreate }) {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
-                {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                {QUESTION_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </div>
 

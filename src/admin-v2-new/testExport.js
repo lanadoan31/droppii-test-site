@@ -1,9 +1,12 @@
 // Validation and export utilities for the admin-v2 builder.
 // exportTest() produces the standard format that the seller test flow will consume.
 
+import { mergeLegacyQuestionFields } from '../data/embeddedQuestion.js';
+
 // ── Normalize ──────────────────────────────────────────────────────────────────
 // Ensures every question object has all fields, regardless of how it was created.
-export function normalizeQuestion(q) {
+export function normalizeQuestion(raw) {
+  const q = mergeLegacyQuestionFields(raw);
   const type = q.type || 'multiple-choice';
   let options;
   if (type === 'short-answer') {
@@ -21,13 +24,18 @@ export function normalizeQuestion(q) {
     correct:     Array.isArray(q.correct) ? q.correct : [0],
     explanation: q.explanation || '',
     points:      q.points ?? 1,
-    keywords:    type === 'short-answer' ? (q.keywords || '') : '',
+    keywords:    type === 'short-answer'
+      ? (Array.isArray(q.keywords) ? q.keywords.join(', ') : (q.keywords || ''))
+      : '',
+    category:    q.category,
+    difficultyLevel: q.difficultyLevel,
   };
 }
 
 // ── Per-question validation ────────────────────────────────────────────────────
 // Returns an array of error codes (empty = valid).
-export function validateQuestion(q) {
+export function validateQuestion(raw) {
+  const q = mergeLegacyQuestionFields(raw);
   const errors = [];
   if (!q.text?.trim()) {
     errors.push('empty-text');

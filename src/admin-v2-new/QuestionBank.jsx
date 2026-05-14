@@ -436,6 +436,8 @@ export default function QuestionBank({ showToast, tests = [], setTests }) {
         explanation: bankQ.explanation || '',
         points: bankQ.points ?? 1,
         keywords: bankQ.keywords || '',
+        category: bankQ.category,
+        difficultyLevel: bankQ.difficultyLevel,
       });
       const next = {
         ...test,

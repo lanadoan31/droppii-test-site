@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { getAllResults } from '../data/resultStore.js';
+import { saveTest } from '../data/testStore.js';
 import Icon from './icons.jsx';
 
 function Pill({ status }) {
@@ -390,12 +391,17 @@ export default function TestDetail({ tests, setTests, testId, navigate, showToas
     );
   }
 
-  function togglePublish() {
+  async function togglePublish() {
     const newStatus = test.status === 'published' ? 'draft' : 'published';
-    setTests((prev) =>
-      prev.map((t) => t.id === test.id ? { ...t, status: newStatus, updatedAt: 'just now' } : t)
-    );
-    showToast(test.status === 'published' ? 'Test unpublished' : 'Test published');
+    const updated = { ...test, status: newStatus, updatedAt: 'just now' };
+    try {
+      const saved = await saveTest(updated);
+      setTests((prev) => prev.map((t) => (t.id === test.id ? saved : t)));
+      showToast(newStatus === 'published' ? 'Test published' : 'Test unpublished');
+    } catch (err) {
+      console.error(err);
+      showToast('Could not update publish status — check console');
+    }
   }
 
   return (

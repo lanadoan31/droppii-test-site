@@ -28,6 +28,11 @@ export default function Test({ tweaks, seller, questions, testMeta, answers, onA
   const timeWarning = timeLeft <= 5 * 60;
   const answered = answers[q.id];
   const canProceed = isAnswered(q, answered);
+  const optList = Array.isArray(q.options) ? q.options : [];
+  const emptyPrompt = !String(q.prompt ?? '').trim();
+  const emptyOptions =
+    (q.type === 'single' || q.type === 'multi') &&
+    (optList.length === 0 || optList.every((o) => !String(o?.text ?? '').trim()));
 
   return (
     <div className="screen test" style={{ background: tweaks.bgColor }}>
@@ -98,6 +103,27 @@ export default function Test({ tweaks, seller, questions, testMeta, answers, onA
             </span>
           </div>
 
+          {(emptyPrompt || emptyOptions) && (
+            <div
+              role="alert"
+              style={{
+                padding: 14,
+                marginBottom: 14,
+                borderRadius: 10,
+                background: '#fff4e5',
+                color: '#5c4a1e',
+                fontSize: 14,
+              }}
+            >
+              Không tải được nội dung câu hỏi hoặc phương án. Vui lòng làm mới trang hoặc liên hệ quản trị viên.
+              {import.meta.env.DEV && (
+                <pre style={{ marginTop: 10, fontSize: 11, whiteSpace: 'pre-wrap', opacity: 0.85 }}>
+                  {JSON.stringify({ prompt: q.prompt, type: q.type, options: q.options }, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
+
           {q.type === "scenario" && q.scenario && (
             <div className="scenario-bubble" style={{ borderLeftColor: secondary }}>
               <div className="scenario-customer">
@@ -116,11 +142,11 @@ export default function Test({ tweaks, seller, questions, testMeta, answers, onA
             </div>
           )}
 
-          <h2 className="q-prompt">{q.prompt}</h2>
+          <h2 className="q-prompt">{emptyPrompt ? '(Thiếu nội dung câu hỏi)' : q.prompt}</h2>
 
           {(q.type === "single" || q.type === "scenario") && (
             <div className="options">
-              {q.options.map((opt, i) => {
+              {optList.map((opt, i) => {
                 const checked = (answered || []).includes(opt.id);
                 return (
                   <label
@@ -150,7 +176,7 @@ export default function Test({ tweaks, seller, questions, testMeta, answers, onA
 
           {q.type === "multi" && (
             <div className="options">
-              {q.options.map((opt, i) => {
+              {optList.map((opt, i) => {
                 const arr = answered || [];
                 const checked = arr.includes(opt.id);
                 const toggle = () => {

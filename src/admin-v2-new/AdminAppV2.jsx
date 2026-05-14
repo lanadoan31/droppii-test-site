@@ -95,12 +95,12 @@ export default function AdminAppV2() {
     };
     setModal(null);
     try {
-      await saveTest(newTest);
+      const saved = await saveTest(newTest);
+      setTests((prev) => [saved, ...prev]);
     } catch (err) {
       showToast('Error saving to Supabase — check console');
       return;
     }
-    setTests((prev) => [newTest, ...prev]);
     showToast('Draft test created');
     navigate('builder', id);
   }

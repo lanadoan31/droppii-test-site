@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import Icon from './icons.jsx';
-import { CATEGORIES } from './data-v2.js';
+import { DEFAULT_QUESTION_CATEGORY, QUESTION_CATEGORIES } from '../data/questionBankCategories.js';
 import { getAllQuestions } from '../data/questionStore.js';
 import { getDraft, saveDraft } from './builderDraft.js';
 import { normalizeQuestion, validateQuestion, validateForPublish } from './testExport.js';
@@ -271,7 +271,7 @@ function SettingsRail({
         <div className="field">
           <label className="field-label">Category</label>
           <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            {QUESTION_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
         </div>
 
@@ -637,6 +637,8 @@ function BankPickerModal({ onAdd, onClose }) {
         text:    q.text,
         options: q.options || [],
         correct: q.correct || [],
+        category: q.category,
+        difficultyLevel: q.difficultyLevel,
       }));
     onAdd(qs);
     onClose();
@@ -732,7 +734,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
     return qs.some((q) => q.id === id) ? id : (qs[0]?.id || null);
   });
   const [title,              setTitle]              = useState(() => { const d = getDraft(testId); return (d ?? test)?.title ?? ''; });
-  const [category,           setCategory]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.category ?? 'Onboarding'; });
+  const [category,           setCategory]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.category ?? DEFAULT_QUESTION_CATEGORY; });
   const [duration,           setDuration]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.duration ?? 30; });
   const [passingScore,       setPassingScore]       = useState(() => { const d = getDraft(testId); return (d ?? test)?.passingScore ?? 70; });
   const [maxAttempts,        setMaxAttempts]        = useState(() => { const d = getDraft(testId); return (d ?? test)?.maxAttempts ?? 'unlimited'; });

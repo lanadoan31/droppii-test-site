@@ -1,19 +1,23 @@
 import { supabase } from '../lib/supabaseClient';
+import { normalizeQuestion } from '../admin-v2-new/testExport.js';
+import { canonicalQuestionCategory } from './questionBankCategories.js';
 
 // ── DB ↔ App mapping ─────────────────────────────────────────────────────────
 
 // DB row (snake_case) → admin test object used by React state
 function rowToTest(row) {
+  const rawList = Array.isArray(row.questions) ? row.questions : [];
+  const questionsList = rawList.map((q) => normalizeQuestion(q));
   return {
     id:                 row.id,
     title:              row.title || '',
-    category:           row.category || 'General',
+    category:           canonicalQuestionCategory(row.category || ''),
     description:        '',
     status:             row.status || 'draft',
     duration:           row.duration || 30,
     passingScore:       row.passing_score || 70,
-    questionsList:      Array.isArray(row.questions) ? row.questions : [],
-    questions:          Array.isArray(row.questions) ? row.questions.length : 0,
+    questionsList,
+    questions:          questionsList.length,
     maxAttempts:        'unlimited',
     availability:       { type: 'always' },
     randomizeQuestions: true,
@@ -32,14 +36,15 @@ function rowToTest(row) {
 
 // Admin test object → DB row (snake_case)
 function testToRow(test) {
+  const questionsPayload = (test.questionsList || []).map((q) => normalizeQuestion(q));
   return {
     id:            test.id,
     title:         test.title || '',
-    category:      test.category || 'General',
+    category:      canonicalQuestionCategory(test.category || ''),
     duration:      Number(test.duration) || 30,
     passing_score: Number(test.passingScore) || 70,
     status:        test.status || 'draft',
-    questions:     test.questionsList || [],
+    questions:     questionsPayload,
   };
 }
 
@@ -58,7 +63,7 @@ function typeToSeller(adminType) {
 }
 
 export function adaptForSeller(test) {
-  const ql = test.questionsList || [];
+  const ql = (test.questionsList || []).map((q) => normalizeQuestion(q));
   const questions = ql.map((q) => {
     const sellerQ = {
       id:          q.id,
@@ -66,7 +71,7 @@ export function adaptForSeller(test) {
       prompt:      q.text,
       explanation: q.explanation || '',
       topic:       'published',
-      topicLabel:  test.category || 'General',
+      topicLabel:  canonicalQuestionCategory(q.category || test.category || ''),
     };
     if (q.type === 'short-answer') {
       const kw = Array.isArray(q.keywords) ? q.keywords.join(', ') : (q.keywords || '');
@@ -90,7 +95,7 @@ export function adaptForSeller(test) {
       durationMinutes: test.duration || 30,
       passingScore:    test.passingScore || 70,
       totalQuestions:  questions.length,
-      topics:          [{ id: 'cat', label: test.category || 'General' }],
+      topics:          [{ id: 'cat', label: canonicalQuestionCategory(test.category || '') }],
     },
   };
 }
@@ -114,7 +119,7 @@ export async function saveTest(test) {
   if (test.status === 'published') {
     console.log('[Supabase] published to Supabase:', test.id);
   }
-  const row = { ...testToRow(test), questions: test.questionsList || [] };
+  const row = testToRow(test);
   const { data, error } = await supabase
     .from('tests')
     .upsert(row, { onConflict: 'id' })
