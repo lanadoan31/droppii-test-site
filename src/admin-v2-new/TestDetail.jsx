@@ -1,7 +1,52 @@
 import { useState, useMemo } from 'react';
 import { getAllResults } from '../data/resultStore.js';
 import { saveTest } from '../data/testStore.js';
+import { getSellerTestEntryUrl } from '../lib/publicSiteUrl.js';
 import Icon from './icons.jsx';
+
+function SellerTakerLinkCard({ showToast }) {
+  const url = getSellerTestEntryUrl();
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast?.('Seller link copied');
+    } catch {
+      showToast?.('Could not copy — select the URL manually');
+    }
+  }
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card-pad">
+        <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+          Seller test-taking link
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--ink-700)', lineHeight: 1.5, margin: '0 0 12px' }}>
+          Sellers must open this deployment (same origin as this admin). Do not use an old production URL unless that project is intentionally wired to this data.
+        </p>
+        <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <code style={{
+            flex: '1 1 200px',
+            fontSize: 12.5,
+            padding: '8px 10px',
+            borderRadius: 8,
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border-subtle)',
+            wordBreak: 'break-all',
+          }}
+          >
+            {url}
+          </code>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={copy}>
+            <Icon name="copy" size={13} /> Copy
+          </button>
+          <a className="btn btn-primary btn-sm" href={url} target="_blank" rel="noopener noreferrer">
+            Open
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Pill({ status }) {
   const labels = { published: 'Published', draft: 'Draft', scheduled: 'Scheduled', archived: 'Archived' };
@@ -73,7 +118,7 @@ function AvailCard({ availability, onEdit }) {
 }
 
 // ─── Overview Tab ────────────────────────────────────────
-function OverviewTab({ test, results, navigate, onViewAll }) {
+function OverviewTab({ test, results, navigate, onViewAll, showToast }) {
   const recent = useMemo(
     () => [...results].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt)).slice(0, 5),
     [results]
@@ -90,6 +135,10 @@ function OverviewTab({ test, results, navigate, onViewAll }) {
       </div>
 
       <AvailCard availability={test.availability} onEdit={() => navigate('builder', test.id)} />
+
+      {test.status === 'published' && (
+        <SellerTakerLinkCard showToast={showToast} />
+      )}
 
       <div className="grid-2">
         {/* Recent takers */}
@@ -452,7 +501,7 @@ export default function TestDetail({ tests, setTests, testId, navigate, showToas
         <button className={`tab ${tab === 'settings'  ? 'active' : ''}`} onClick={() => setTab('settings')}>Settings</button>
       </div>
 
-      {tab === 'overview'  && <OverviewTab  test={test} results={results} navigate={navigate} onViewAll={() => setTab('results')} />}
+      {tab === 'overview'  && <OverviewTab  test={test} results={results} navigate={navigate} onViewAll={() => setTab('results')} showToast={showToast} />}
       {tab === 'questions' && <QuestionsTab test={test} navigate={navigate} />}
       {tab === 'results'   && <ResultsTab  results={results} />}
       {tab === 'settings'  && <SettingsTab test={test} setTests={setTests} showToast={showToast} navigate={navigate} />}
