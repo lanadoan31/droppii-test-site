@@ -1,7 +1,44 @@
 import { supabase } from '../lib/supabaseClient';
 import { canonicalQuestionCategory } from './questionBankCategories.js';
 
-/** Apply in Supabase SQL Editor if you need DB-backed difficulty: `supabase/migrations/20260213120000_questions_difficulty_level.sql` */
+/**
+ * When `questions.difficulty_level` is missing from PostgREST, inserts omit it.
+ * Session overlay remembers chosen difficulty per id so refresh still matches the admin UI
+ * until you run: `supabase/migrations/20260213120000_questions_difficulty_level.sql` in Supabase.
+ */
+const DIFFICULTY_OVERLAY_KEY = 'droppii_q_difficulty_overlay_v1';
+
+function readDifficultyOverlay() {
+  try {
+    const raw = sessionStorage.getItem(DIFFICULTY_OVERLAY_KEY);
+    const o = raw ? JSON.parse(raw) : {};
+    return o && typeof o === 'object' ? o : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeDifficultyOverlay(obj) {
+  try {
+    sessionStorage.setItem(DIFFICULTY_OVERLAY_KEY, JSON.stringify(obj));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function rememberDifficultyInOverlay(id, level) {
+  if (!id) return;
+  const o = readDifficultyOverlay();
+  o[id] = normalizeDifficultyLevel(level);
+  writeDifficultyOverlay(o);
+}
+
+function forgetDifficultyInOverlay(id) {
+  if (!id) return;
+  const o = readDifficultyOverlay();
+  delete o[id];
+  writeDifficultyOverlay(o);
+}
 
 function normalizeDifficultyLevel(v) {
   const x = String(v ?? 'medium').trim().toLowerCase();
@@ -27,6 +64,21 @@ function questionToRow(q, { omitDifficulty = false } = {}) {
     row.difficulty_level = normalizeDifficultyLevel(q.difficultyLevel);
   }
   return row;
+}
+
+function rowHasPersistedDifficulty(row) {
+  const v = row?.difficulty_level;
+  return v != null && String(v).trim() !== '';
+}
+
+/** When PostgREST has no `difficulty_level` column, inserts omit it — merge client choice for correct UI until migration is applied. */
+function mergeClientDifficultyIntoRow(data, question) {
+  if (!data || !question) return data;
+  if (rowHasPersistedDifficulty(data)) return data;
+  return {
+    ...data,
+    difficulty_level: normalizeDifficultyLevel(question.difficultyLevel),
+  };
 }
 
 function rowToQuestion(row) {
@@ -57,7 +109,13 @@ export async function getAllQuestions() {
     .select('*')
     .order('created_at', { ascending: false });
   if (error) { console.error('[Supabase] getAllQuestions error:', error); return []; }
-  return (data || []).map(rowToQuestion);
+  const overlay = readDifficultyOverlay();
+  return (data || []).map((row) => {
+    if (rowHasPersistedDifficulty(row)) return rowToQuestion(row);
+    const fromOverlay = overlay[row.id];
+    if (fromOverlay) return rowToQuestion({ ...row, difficulty_level: fromOverlay });
+    return rowToQuestion(row);
+  });
 }
 
 async function insertQuestionRow(row) {
@@ -80,7 +138,10 @@ export async function createQuestion(question) {
   }
 
   if (error) { console.error('[Supabase] createQuestion error:', error); throw error; }
-  return rowToQuestion(data);
+  const merged = mergeClientDifficultyIntoRow(data, question);
+  if (rowHasPersistedDifficulty(data)) forgetDifficultyInOverlay(data.id);
+  else rememberDifficultyInOverlay(data.id, question.difficultyLevel);
+  return rowToQuestion(merged);
 }
 
 export async function updateQuestion(id, question) {
@@ -95,7 +156,10 @@ export async function updateQuestion(id, question) {
   }
 
   if (error) { console.error('[Supabase] updateQuestion error:', error); throw error; }
-  return rowToQuestion(data);
+  const merged = mergeClientDifficultyIntoRow(data, question);
+  if (rowHasPersistedDifficulty(data)) forgetDifficultyInOverlay(data.id);
+  else rememberDifficultyInOverlay(data.id, question.difficultyLevel);
+  return rowToQuestion(merged);
 }
 
 export async function deleteQuestion(id) {
@@ -105,4 +169,5 @@ export async function deleteQuestion(id) {
     .delete()
     .eq('id', id);
   if (error) { console.error('[Supabase] deleteQuestion error:', error); throw error; }
+  forgetDifficultyInOverlay(id);
 }

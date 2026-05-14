@@ -1,5 +1,6 @@
 -- Question bank: difficulty metadata (safe additive migration; no data loss).
 -- Run against your Supabase project (SQL editor or `supabase db push`).
+-- If PostgREST still errors on insert: Dashboard → Project Settings → API → "Reload schema" (schema cache).
 
 -- 1) Bank questions live in `questions`; tests live in `tests` with JSON `questions` array (snapshots).
 --    Relationship is denormalized in JSON — duplicate prevention is enforced in app + optional unique
