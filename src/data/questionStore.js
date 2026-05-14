@@ -1,10 +1,32 @@
 import { supabase } from '../lib/supabaseClient';
 import { canonicalQuestionCategory } from './questionBankCategories.js';
 
+/** Apply in Supabase SQL Editor if you need DB-backed difficulty: `supabase/migrations/20260213120000_questions_difficulty_level.sql` */
+
 function normalizeDifficultyLevel(v) {
   const x = String(v ?? 'medium').trim().toLowerCase();
   if (x === 'easy' || x === 'hard' || x === 'medium') return x;
   return 'medium';
+}
+
+function missingDifficultyColumnError(error) {
+  if (!error) return false;
+  const msg = String(error.message || '');
+  return /difficulty_level/i.test(msg);
+}
+
+function questionToRow(q, { omitDifficulty = false } = {}) {
+  const row = {
+    content:        q.text || '',
+    type:           q.type || 'multiple-choice',
+    options:        q.type === 'short-answer' ? null : (q.options || []),
+    correct_answer: q.correct || [],
+    category:       canonicalQuestionCategory(q.category),
+  };
+  if (!omitDifficulty) {
+    row.difficulty_level = normalizeDifficultyLevel(q.difficultyLevel);
+  }
+  return row;
 }
 
 function rowToQuestion(row) {
@@ -21,15 +43,11 @@ function rowToQuestion(row) {
   };
 }
 
-function questionToRow(q) {
-  return {
-    content:          q.text || '',
-    type:             q.type || 'multiple-choice',
-    options:          q.type === 'short-answer' ? null : (q.options || []),
-    correct_answer:   q.correct || [],
-    category:         canonicalQuestionCategory(q.category),
-    difficulty_level: normalizeDifficultyLevel(q.difficultyLevel),
-  };
+/** Human-readable Supabase / PostgREST errors for toasts (no secrets). */
+export function formatQuestionStoreError(error) {
+  if (!error) return 'Unknown error';
+  const parts = [error.message, error.code && `(${error.code})`, error.details].filter(Boolean);
+  return parts.join(' — ') || 'Unknown error';
 }
 
 export async function getAllQuestions() {
@@ -42,25 +60,40 @@ export async function getAllQuestions() {
   return (data || []).map(rowToQuestion);
 }
 
+async function insertQuestionRow(row) {
+  return supabase.from('questions').insert(row).select().single();
+}
+
+async function updateQuestionRow(id, row) {
+  return supabase.from('questions').update(row).eq('id', id).select().single();
+}
+
 export async function createQuestion(question) {
   console.log('[Supabase] saving question:', question.text?.slice(0, 60));
-  const { data, error } = await supabase
-    .from('questions')
-    .insert(questionToRow(question))
-    .select()
-    .single();
+  let row = questionToRow(question, { omitDifficulty: false });
+  let { data, error } = await insertQuestionRow(row);
+
+  if (error && missingDifficultyColumnError(error)) {
+    console.warn('[Supabase] questions.difficulty_level missing — retry without column (run migration to persist difficulty).');
+    row = questionToRow(question, { omitDifficulty: true });
+    ({ data, error } = await insertQuestionRow(row));
+  }
+
   if (error) { console.error('[Supabase] createQuestion error:', error); throw error; }
   return rowToQuestion(data);
 }
 
 export async function updateQuestion(id, question) {
   console.log('[Supabase] saving question:', id);
-  const { data, error } = await supabase
-    .from('questions')
-    .update(questionToRow(question))
-    .eq('id', id)
-    .select()
-    .single();
+  let row = questionToRow(question, { omitDifficulty: false });
+  let { data, error } = await updateQuestionRow(id, row);
+
+  if (error && missingDifficultyColumnError(error)) {
+    console.warn('[Supabase] questions.difficulty_level missing — retry update without column.');
+    row = questionToRow(question, { omitDifficulty: true });
+    ({ data, error } = await updateQuestionRow(id, row));
+  }
+
   if (error) { console.error('[Supabase] updateQuestion error:', error); throw error; }
   return rowToQuestion(data);
 }

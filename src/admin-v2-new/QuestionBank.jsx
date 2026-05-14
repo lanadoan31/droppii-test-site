@@ -5,7 +5,13 @@ import {
   DEFAULT_QUESTION_CATEGORY,
   canonicalQuestionCategory,
 } from '../data/questionBankCategories.js';
-import { getAllQuestions, createQuestion, updateQuestion, deleteQuestion } from '../data/questionStore.js';
+import {
+  getAllQuestions,
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+  formatQuestionStoreError,
+} from '../data/questionStore.js';
 import { saveTest } from '../data/testStore.js';
 import { normalizeQuestion } from './testExport.js';
 
@@ -379,8 +385,9 @@ export default function QuestionBank({ showToast, tests = [], setTests }) {
         setSelected(null);
         showToast('Question updated');
       }
-    } catch {
-      showToast('Error saving — check console');
+    } catch (e) {
+      console.error(e);
+      showToast(`Error saving: ${formatQuestionStoreError(e)}`);
     } finally {
       setSaving(false);
     }
@@ -394,8 +401,9 @@ export default function QuestionBank({ showToast, tests = [], setTests }) {
       setQuestions((prev) => prev.filter((q) => q.id !== selected.id));
       setSelected(null);
       showToast('Question deleted');
-    } catch {
-      showToast('Error deleting — check console');
+    } catch (e) {
+      console.error(e);
+      showToast(`Error deleting: ${formatQuestionStoreError(e)}`);
     }
   }
 
