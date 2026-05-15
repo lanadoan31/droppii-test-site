@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import { normalizeQuestion } from '../admin-v2-new/testExport.js';
 import { canonicalQuestionCategory } from './questionBankCategories.js';
+import { formatAttemptLimit } from './testMetaFormat.js';
 
 // ── DB ↔ App mapping ─────────────────────────────────────────────────────────
 
@@ -12,13 +13,14 @@ function rowToTest(row) {
     id:                 row.id,
     title:              row.title || '',
     category:           canonicalQuestionCategory(row.category || ''),
-    description:        '',
+    description:        row.description || '',
     status:             row.status || 'draft',
     duration:           row.duration || 30,
     passingScore:       row.passing_score || 70,
     questionsList,
     questions:          questionsList.length,
-    maxAttempts:        'unlimited',
+    maxAttempts:        parseMaxAttempts(row.max_attempts),
+    certificateName:    row.certificate_name || '',
     availability:       { type: 'always' },
     randomizeQuestions: true,
     randomizeOptions:   true,
@@ -42,10 +44,42 @@ function testToRow(test) {
     title:         test.title || '',
     category:      canonicalQuestionCategory(test.category || ''),
     duration:      Number(test.duration) || 30,
-    passing_score: Number(test.passingScore) || 70,
-    status:        test.status || 'draft',
-    questions:     questionsPayload,
+    passing_score:    Number(test.passingScore) || 70,
+    description:      test.description || '',
+    max_attempts:     serializeMaxAttempts(test.maxAttempts),
+    certificate_name: test.certificateName || '',
+    status:           test.status || 'draft',
+    questions:        questionsPayload,
   };
+}
+
+function parseMaxAttempts(value) {
+  if (value == null || value === '' || value === 'unlimited') return 'unlimited';
+  const n = Number(value);
+  return !Number.isNaN(n) && n > 0 ? n : 'unlimited';
+}
+
+function serializeMaxAttempts(value) {
+  if (value === 'unlimited' || value == null || value === '') return 'unlimited';
+  const n = Number(value);
+  return !Number.isNaN(n) && n > 0 ? String(n) : 'unlimited';
+}
+
+function collectTopicLabels(test) {
+  const labels = new Set();
+  const testCategory = canonicalQuestionCategory(test.category || '');
+  if (testCategory) labels.add(testCategory);
+
+  for (const q of test.questionsList || []) {
+    const cat = canonicalQuestionCategory(q.category || '');
+    if (cat) labels.add(cat);
+  }
+
+  const arr = [...labels];
+  if (arr.length === 0) {
+    return [{ id: 'general', label: testCategory || 'Kiến thức chung' }];
+  }
+  return arr.map((label, i) => ({ id: `topic-${i}`, label }));
 }
 
 // ── Seller transform ──────────────────────────────────────────────────────────
@@ -86,16 +120,23 @@ export function adaptForSeller(test) {
     return sellerQ;
   });
 
+  const passingScore = Number(test.passingScore) || 70;
+  const durationMinutes = Number(test.duration) || 30;
+
   return {
     questions,
     testMeta: {
       id:              test.id,
-      title:           test.title,
-      subtitle:        'Bài kiểm tra kiến thức',
-      durationMinutes: test.duration || 30,
-      passingScore:    test.passingScore || 70,
+      title:           test.title || 'Bài kiểm tra',
+      subtitle:        (test.description || '').trim() || 'Bài kiểm tra kiến thức',
+      durationMinutes,
+      passingScore,
       totalQuestions:  questions.length,
-      topics:          [{ id: 'cat', label: canonicalQuestionCategory(test.category || '') }],
+      maxAttempts:     test.maxAttempts ?? 'unlimited',
+      attemptLimitLabel: formatAttemptLimit(test.maxAttempts),
+      certificateName: (test.certificateName || '').trim() || 'Chứng chỉ Droppii',
+      category:        canonicalQuestionCategory(test.category || ''),
+      topics:          collectTopicLabels(test),
     },
   };
 }

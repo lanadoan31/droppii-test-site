@@ -75,6 +75,7 @@ export default function AdminAppV2() {
       title:              data.title,
       category:           data.category,
       description:        data.description || '',
+      certificateName:    '',
       status:             'draft',
       questions:          0,
       questionsList:      [],

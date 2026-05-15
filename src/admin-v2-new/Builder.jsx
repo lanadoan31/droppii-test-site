@@ -229,6 +229,8 @@ function QuestionEditor({ q, index, onUpdate, onDelete }) {
 // ── Settings rail ───────────────────────────────────────────────────────────────
 function SettingsRail({
   category, setCategory,
+  description, setDescription,
+  certificateName, setCertificateName,
   duration, setDuration,
   passingScore, setPassingScore,
   maxAttempts, setMaxAttempts,
@@ -273,6 +275,34 @@ function SettingsRail({
           <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
             {QUESTION_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
+        </div>
+
+        <div className="field">
+          <label className="field-label">
+            Description{' '}
+            <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>(optional)</span>
+          </label>
+          <textarea
+            className="textarea"
+            placeholder="Shown on the test intro screen"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ minHeight: 60 }}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label">
+            Certificate name{' '}
+            <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>(optional)</span>
+          </label>
+          <input
+            className="input"
+            placeholder="e.g. AI Seller · Level 1"
+            value={certificateName}
+            onChange={(e) => setCertificateName(e.target.value)}
+          />
+          <div className="field-help">Displayed on the seller intro and certificate preview.</div>
         </div>
 
         <div className="grid-2">
@@ -735,6 +765,8 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   });
   const [title,              setTitle]              = useState(() => { const d = getDraft(testId); return (d ?? test)?.title ?? ''; });
   const [category,           setCategory]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.category ?? DEFAULT_QUESTION_CATEGORY; });
+  const [description,        setDescription]        = useState(() => { const d = getDraft(testId); return (d ?? test)?.description ?? ''; });
+  const [certificateName,    setCertificateName]    = useState(() => { const d = getDraft(testId); return (d ?? test)?.certificateName ?? ''; });
   const [duration,           setDuration]           = useState(() => { const d = getDraft(testId); return (d ?? test)?.duration ?? 30; });
   const [passingScore,       setPassingScore]       = useState(() => { const d = getDraft(testId); return (d ?? test)?.passingScore ?? 70; });
   const [maxAttempts,        setMaxAttempts]        = useState(() => { const d = getDraft(testId); return (d ?? test)?.maxAttempts ?? 'unlimited'; });
@@ -749,7 +781,7 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
   // Persist draft on navigation away. Ref always holds latest state — safe in cleanup.
   const draftRef = useRef(null);
   draftRef.current = {
-    testId, questions, activeId, title, category, duration, passingScore,
+    testId, questions, activeId, title, category, description, certificateName, duration, passingScore,
     maxAttempts, availability, randomizeQuestions, randomizeOptions,
     showCorrectAnswers, requireWebcam, assignedUsers,
   };
@@ -841,6 +873,8 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
     const patch = {
       title:              title.trim() || test.title,
       category,
+      description:        description.trim(),
+      certificateName:    certificateName.trim(),
       duration:           durNum,
       passingScore:       scoreNum,
       maxAttempts,
@@ -1043,6 +1077,8 @@ export default function Builder({ tests, setTests, testId, navigate, showToast }
         {/* Right pane: settings */}
         <SettingsRail
           category={category}           setCategory={setCategory}
+          description={description}     setDescription={setDescription}
+          certificateName={certificateName} setCertificateName={setCertificateName}
           duration={duration}           setDuration={setDuration}
           passingScore={passingScore}   setPassingScore={setPassingScore}
           maxAttempts={maxAttempts}     setMaxAttempts={setMaxAttempts}

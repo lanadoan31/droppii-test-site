@@ -3,6 +3,11 @@ import { DroppiiLogo, IconChat, BrandPattern } from "./Brand";
 export default function PreTest({ tweaks, seller, testMeta, onStart }) {
   const primary = tweaks.primaryColor;
   const secondary = tweaks.secondaryColor;
+  const passingScore = testMeta.passingScore ?? 70;
+  const durationMinutes = testMeta.durationMinutes ?? 30;
+  const certificateName = testMeta.certificateName || "Chứng chỉ Droppii";
+  const attemptLabel = testMeta.attemptLimitLabel || "Không giới hạn";
+  const heroTag = testMeta.certificateName || testMeta.category;
 
   return (
     <div className="screen pretest" style={{ background: tweaks.bgColor }}>
@@ -26,10 +31,12 @@ export default function PreTest({ tweaks, seller, testMeta, onStart }) {
             <div className="hero-pattern">
               <BrandPattern height={28} count={9} colors={[primary, secondary]} seed={3} />
             </div>
-            <div className="hero-tag">
-              <IconChat size={14} color={primary} />
-              <span>Chứng chỉ AI cho Nhà bán hàng · 2026</span>
-            </div>
+            {heroTag && (
+              <div className="hero-tag">
+                <IconChat size={14} color={primary} />
+                <span>{heroTag}</span>
+              </div>
+            )}
             <h1 className="hero-title">{testMeta.title}</h1>
             <p className="hero-sub">{testMeta.subtitle}</p>
 
@@ -40,22 +47,22 @@ export default function PreTest({ tweaks, seller, testMeta, onStart }) {
               </div>
               <div className="stat">
                 <div className="stat-label">Thời gian</div>
-                <div className="stat-value">{testMeta.durationMinutes} phút</div>
+                <div className="stat-value">{durationMinutes} phút</div>
               </div>
               <div className="stat">
                 <div className="stat-label">Đạt</div>
-                <div className="stat-value">≥ {testMeta.passingScore}%</div>
+                <div className="stat-value">≥ {passingScore}%</div>
               </div>
               <div className="stat">
                 <div className="stat-label">Lần thử</div>
-                <div className="stat-value">3 / ngày</div>
+                <div className="stat-value">{attemptLabel}</div>
               </div>
             </div>
 
             <div className="topics">
               <div className="topics-label">Nội dung kiểm tra</div>
               <div className="topic-pills">
-                {testMeta.topics.map((t, i) => (
+                {(testMeta.topics || []).map((t, i) => (
                   <span
                     key={t.id}
                     className="topic-pill"
@@ -100,7 +107,7 @@ export default function PreTest({ tweaks, seller, testMeta, onStart }) {
               <li>
                 <div className="rule-num" style={{ background: `${secondary}18`, color: secondary }}>2</div>
                 <div>
-                  <div className="rule-h">Bộ đếm 30 phút</div>
+                  <div className="rule-h">Bộ đếm {durationMinutes} phút</div>
                   <div className="rule-d">Hết giờ bài sẽ tự nộp. Đồng hồ sẽ chuyển đỏ trong 5 phút cuối.</div>
                 </div>
               </li>
@@ -114,8 +121,8 @@ export default function PreTest({ tweaks, seller, testMeta, onStart }) {
               <li>
                 <div className="rule-num" style={{ background: `${secondary}18`, color: secondary }}>4</div>
                 <div>
-                  <div className="rule-h">Đạt ≥ 70% để nhận chứng chỉ</div>
-                  <div className="rule-d">Chứng chỉ Droppii AI Seller có giá trị 12 tháng.</div>
+                  <div className="rule-h">Đạt ≥ {passingScore}% để nhận chứng chỉ</div>
+                  <div className="rule-d">Chứng chỉ {certificateName} có giá trị 12 tháng.</div>
                 </div>
               </li>
             </ul>
@@ -125,8 +132,8 @@ export default function PreTest({ tweaks, seller, testMeta, onStart }) {
                 <div className="mini-cert-stripe" style={{ background: `linear-gradient(90deg, ${primary}, ${secondary})` }} />
                 <div className="mini-cert-body">
                   <div className="mini-cert-eyebrow">Chứng chỉ điện tử</div>
-                  <div className="mini-cert-title">AI Seller · Level 1</div>
-                  <div className="mini-cert-meta">Nhận sau khi đạt ≥ 70%</div>
+                  <div className="mini-cert-title">{certificateName}</div>
+                  <div className="mini-cert-meta">Nhận sau khi đạt ≥ {passingScore}%</div>
                 </div>
                 <IconChat size={20} color={primary} />
               </div>

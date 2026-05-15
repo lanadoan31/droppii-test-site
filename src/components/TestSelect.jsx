@@ -70,7 +70,7 @@ export default function TestSelect({ tweaks, seller, tests, onSelect }) {
                   )}
                   <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                     <span style={{ fontSize: 12.5, color: "#9CA3AF" }}>
-                      {test.questionCount || (test.questions || []).length} câu hỏi
+                      {test.questionsList?.length ?? test.questions ?? 0} câu hỏi
                     </span>
                     <span style={{ fontSize: 12.5, color: "#9CA3AF" }}>{test.duration} phút</span>
                     <span style={{ fontSize: 12.5, color: "#9CA3AF" }}>
