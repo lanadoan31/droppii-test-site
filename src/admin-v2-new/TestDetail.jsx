@@ -449,7 +449,7 @@ export default function TestDetail({ tests, setTests, testId, navigate, showToas
       showToast(newStatus === 'published' ? 'Test published' : 'Test unpublished');
     } catch (err) {
       console.error(err);
-      showToast('Could not update publish status — check console');
+      showToast(`Could not update publish status: ${err.message || 'Unknown error'}`);
     }
   }
 

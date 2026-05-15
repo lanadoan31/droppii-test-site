@@ -124,15 +124,15 @@ export default function TestList({ tests, setTests, navigate, openModal, showToa
     const updated = { ...t, status: newStatus, updatedAt: 'just now' };
     setMenuId(null);
     try {
-      await saveTest(updated);
+      const saved = await saveTest(updated);
       console.log('[Supabase] saving test:', id, 'status:', newStatus);
       if (newStatus === 'published') console.log('[Supabase] published to Supabase:', id);
+      setTests((prev) => prev.map((x) => (x.id === id ? saved : x)));
+      showToast(newStatus === 'published' ? 'Test published' : 'Test unpublished');
     } catch (err) {
-      showToast('Error saving to Supabase — check console');
+      showToast(`Could not update publish status: ${err.message || 'Unknown error'}`);
       return;
     }
-    setTests((prev) => prev.map((x) => (x.id === id ? updated : x)));
-    showToast(newStatus === 'published' ? 'Test published' : 'Test unpublished');
   }
 
   async function duplicate(id) {

@@ -54,15 +54,15 @@ function testToRow(test) {
 }
 
 function parseMaxAttempts(value) {
-  if (value == null || value === '' || value === 'unlimited') return 'unlimited';
+  if (value == null || value === '') return 'unlimited';
   const n = Number(value);
   return !Number.isNaN(n) && n > 0 ? n : 'unlimited';
 }
 
 function serializeMaxAttempts(value) {
-  if (value === 'unlimited' || value == null || value === '') return 'unlimited';
+  if (value === 'unlimited' || value == null || value === '') return null;
   const n = Number(value);
-  return !Number.isNaN(n) && n > 0 ? String(n) : 'unlimited';
+  return !Number.isNaN(n) && n > 0 ? n : null;
 }
 
 function collectTopicLabels(test) {
@@ -143,6 +143,15 @@ export function adaptForSeller(test) {
 
 // ── Admin CRUD ────────────────────────────────────────────────────────────────
 
+export function formatSupabaseError(error) {
+  if (!error) return 'Unknown error';
+  const msg = error.message || String(error);
+  if (error.code === '42501') return `RLS policy blocked update — ${msg}`;
+  if (error.code === '22P02') return `Invalid data — ${msg}`;
+  if (error.code === 'PGRST204') return `Missing column — ${msg}`;
+  return msg;
+}
+
 export async function getAllTests() {
   console.log('[Supabase] fetching tests');
   const { data, error } = await supabase
@@ -168,7 +177,9 @@ export async function saveTest(test) {
     .single();
   if (error) {
     console.error('[Supabase] saveTest error:', error.message, error);
-    throw error;
+    const wrapped = new Error(formatSupabaseError(error));
+    wrapped.cause = error;
+    throw wrapped;
   }
   return rowToTest(data);
 }
